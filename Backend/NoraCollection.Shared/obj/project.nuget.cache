@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "BpoH0KHLlac=",
+  "success": true,
+  "projectFilePath": "/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj",
+  "expectedPackageFiles": [
+    "/Users/hatice/.nuget/packages/microsoft.netcore.app.ref/8.0.19/microsoft.netcore.app.ref.8.0.19.nupkg.sha512",
+    "/Users/hatice/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.19/microsoft.aspnetcore.app.ref.8.0.19.nupkg.sha512"
+  ],
+  "logs": []
+}

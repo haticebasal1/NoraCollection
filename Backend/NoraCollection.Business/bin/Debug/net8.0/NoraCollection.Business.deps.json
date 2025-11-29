@@ -1,0 +1,56 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "NoraCollection.Business/1.0.0": {
+        "dependencies": {
+          "NoraCollection.Data": "1.0.0",
+          "NoraCollection.Entities": "1.0.0"
+        },
+        "runtime": {
+          "NoraCollection.Business.dll": {}
+        }
+      },
+      "NoraCollection.Data/1.0.0": {
+        "dependencies": {
+          "NoraCollection.Entities": "1.0.0"
+        },
+        "runtime": {
+          "NoraCollection.Data.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "NoraCollection.Entities/1.0.0": {
+        "runtime": {
+          "NoraCollection.Entities.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "NoraCollection.Business/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "NoraCollection.Data/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "NoraCollection.Entities/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

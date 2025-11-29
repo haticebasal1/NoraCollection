@@ -1,0 +1,11 @@
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/bin/Debug/net8.0/NoraCollection.Entities.deps.json
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/bin/Debug/net8.0/NoraCollection.Entities.dll
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/bin/Debug/net8.0/NoraCollection.Entities.pdb
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/Debug/net8.0/NoraCollection.Entities.GeneratedMSBuildEditorConfig.editorconfig
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/Debug/net8.0/NoraCollection.Entities.AssemblyInfoInputs.cache
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/Debug/net8.0/NoraCollection.Entities.AssemblyInfo.cs
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/Debug/net8.0/NoraCollection.Entities.csproj.CoreCompileInputs.cache
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/Debug/net8.0/NoraCollection.Entities.dll
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/Debug/net8.0/refint/NoraCollection.Entities.dll
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/Debug/net8.0/NoraCollection.Entities.pdb
+/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/Debug/net8.0/ref/NoraCollection.Entities.dll
