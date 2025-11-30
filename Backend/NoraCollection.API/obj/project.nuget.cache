@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "SqMRJhdK0hc=",
+  "dgSpecHash": "U/vE/rUaN1A=",
   "success": true,
-  "projectFilePath": "/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.API/NoraCollection.API.csproj",
+  "projectFilePath": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/NoraCollection.API.csproj",
   "expectedPackageFiles": [
     "/Users/hatice/.nuget/packages/microsoft.aspnetcore.cryptography.internal/8.0.15/microsoft.aspnetcore.cryptography.internal.8.0.15.nupkg.sha512",
     "/Users/hatice/.nuget/packages/microsoft.aspnetcore.cryptography.keyderivation/8.0.15/microsoft.aspnetcore.cryptography.keyderivation.8.0.15.nupkg.sha512",

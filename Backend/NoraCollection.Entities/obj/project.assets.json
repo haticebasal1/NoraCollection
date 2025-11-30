@@ -836,11 +836,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/NoraCollection.Entities.csproj",
+      "projectUniqueName": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Entities/NoraCollection.Entities.csproj",
       "projectName": "NoraCollection.Entities",
-      "projectPath": "/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/NoraCollection.Entities.csproj",
+      "projectPath": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Entities/NoraCollection.Entities.csproj",
       "packagesPath": "/Users/hatice/.nuget/packages/",
-      "outputPath": "/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Entities/obj/",
+      "outputPath": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Entities/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/hatice/.nuget/NuGet/NuGet.Config"
@@ -855,8 +855,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj": {
-              "projectPath": "/Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj"
+            "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj": {
+              "projectPath": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj"
             }
           }
         }
