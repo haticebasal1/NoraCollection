@@ -1,6 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using NoraCollection.Data.Concrete.Configs;
 using NoraCollection.Entities.Concrete;
 
 namespace NoraCollection.Data.Concrete;
@@ -26,6 +27,7 @@ public DbSet<CustomDesign> CustomDesigns { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
+        builder.ApplyConfigurationsFromAssembly(typeof(CategoryConfig).Assembly);
         base.OnModelCreating(builder);
     }
 }

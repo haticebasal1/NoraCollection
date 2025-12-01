@@ -9,11 +9,12 @@ public class Category : BaseEntity, IEntity
     {
 
     }
-    public Category(string name, string? description, string? imageUrl)
+    public Category(string name, string? description, string? imageUrl, string slug)
     {
         Name = name;
         Description = description;
         ImageUrl = imageUrl;
+        Slug = slug;
     }
     public string Name { get; set; }
     public string? Description { get; set; }
