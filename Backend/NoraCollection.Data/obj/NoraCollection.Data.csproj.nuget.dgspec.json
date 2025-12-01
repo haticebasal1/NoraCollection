@@ -28,6 +28,9 @@
             "projectReferences": {
               "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Entities/NoraCollection.Entities.csproj": {
                 "projectPath": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Entities/NoraCollection.Entities.csproj"
+              },
+              "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj": {
+                "projectPath": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj"
               }
             }
           }
@@ -47,6 +50,12 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[8.0.15, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
