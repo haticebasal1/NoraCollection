@@ -39,8 +39,8 @@
 /Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.API/obj/Debug/net8.0/NoraCollection.API.genruntimeconfig.cache
 /Users/hatice/Desktop/NoraCollection/Backend/NoraCollection.API/obj/Debug/net8.0/ref/NoraCollection.API.dll
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/appsettings.Development.json
-/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/NoraCollection.API.staticwebassets.endpoints.json
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/appsettings.json
+/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/NoraCollection.API.staticwebassets.endpoints.json
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/NoraCollection.API
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/NoraCollection.API.deps.json
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/NoraCollection.API.runtimeconfig.json

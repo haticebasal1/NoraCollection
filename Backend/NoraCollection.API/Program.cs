@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using NoraCollection.Data.Abstract;
 using NoraCollection.Data.Concrete;
+using NoraCollection.Data.Concrete.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +14,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped(typeof(IGenerıcRepository<>),typeof(GenericRepository<>));
 
 var app = builder.Build();
 
