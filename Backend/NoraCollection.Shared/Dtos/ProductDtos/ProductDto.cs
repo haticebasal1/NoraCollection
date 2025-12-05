@@ -12,7 +12,7 @@ public class ProductDto
   public bool IsDeleted { get; set; }
   public string? Name { get; set; }
   public string? Properties { get; set; }
-  public string? Price { get; set; }
+  public decimal Price { get; set; }
   public string? ImageUrl { get; set; }
   public bool  IsHome { get; set; }
   public int Stock { get; set; }

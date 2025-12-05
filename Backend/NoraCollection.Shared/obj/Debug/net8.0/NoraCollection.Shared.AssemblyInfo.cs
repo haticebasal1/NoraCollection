@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("NoraCollection.Shared")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c2a3474d1db03f40bfa649f904e45c383f9e0473")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7c515e8bb468fd16ebd3c2b4bbdcd074bdf0aa0d")]
 [assembly: System.Reflection.AssemblyProductAttribute("NoraCollection.Shared")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NoraCollection.Shared")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
