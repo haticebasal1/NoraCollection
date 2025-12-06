@@ -13,6 +13,7 @@ public class AddToCartDto
     [Range(1,int.MaxValue,ErrorMessage ="Geçersiz ürün Id!")]
     public int ProductId { get; set; }
 
-    0
+    [Required(ErrorMessage ="Ürün miktarı zorunludur!")]
+    [Range(1,int.MaxValue,ErrorMessage ="Ürün miktarı en az 1 olmalıdır!")]
     public int Quantity { get; set; }
 }
