@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NoraCollection.Shared.Dtos.AuthDtos;
+using NoraCollection.Shared.Dtos.OrderCouponDtos;
 using NoraCollection.Shared.Enums;
 
 namespace NoraCollection.Shared.Dtos.OrderDtos;
@@ -26,6 +27,6 @@ public class OrderDto
     public decimal ShippingFee { get; set; }     // Kargo ücreti
     public decimal FinalTotal { get; set; }      // Tahsil edilen toplam
     public ICollection<OrderItemDto> OrderItems { get; set; } = [];
-     public ICollection<OrderCouponDto> OrderCoupons { get; set; } = [];
+    public ICollection<OrderCouponDto>? OrderCoupons { get; set; } = [];
     //  public ShippingDto? Shipping { get; set; }
 }
