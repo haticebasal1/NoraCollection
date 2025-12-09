@@ -9,4 +9,6 @@ public class Coupon : BaseEntity, IEntity
     public decimal DiscountAmount { get; set; }//kuponun sağladığı indirim miktarı
     public DateTime ExpiryDate { get; set; }//Kuponun geçerlilik bitiş tarihi
     public bool IsActive { get; set; }
+    public int UsageLimit { get; set; }      // kaç kere kullanılabilir
+    public int UsedCount { get; set; }       // kaç kere kullanıldı
 }
