@@ -1,6 +1,7 @@
 using System;
 using AutoMapper;
 using NoraCollection.Entities.Concrete;
+using NoraCollection.Shared.Dtos.OrderCouponDtos;
 using NoraCollection.Shared.Dtos.OrderDtos;
 
 namespace NoraCollection.Business.Mappings;
@@ -23,7 +24,28 @@ public class OrderProfile:Profile
                 .ForMember(
                  dest=>dest.OrderItems,
                  opt=>opt.MapFrom(src => src.OrderItems))
-                 .ReverseMap();
-
+                 .ForMember(
+                    dest=>dest.OrderCoupons,
+                    opt=>opt.MapFrom(src=>src.OrderCoupons))
+                    .ForMember(
+                        dest=>dest.User,
+                        opt=>opt.Ignore())
+                        .ForMember(
+                            dest=>dest.OrderItems,
+                            opt=>opt.Ignore())
+                        .ForMember(
+                            dest=>dest.OrderCoupons,
+                            opt=>opt.Ignore())
+                            .ReverseMap();
+            CreateMap<OrderItem,OrderItemDto>()
+            .ForMember(
+                dest=>dest.ProductName,
+                opt=>opt.MapFrom(src=>src.Product!.Name))
+                .ForMember(
+                    dest=>dest.ProductImageUrl,
+                    opt=>opt.MapFrom(src=>src.Product!.ImageUrl))
+                    .ReverseMap();
+                    CreateMap<OrderItemCreateDto,OrderItem>();
+                    CreateMap<OrderCoupon,OrderCouponDto>().ReverseMap();
     }
 }
