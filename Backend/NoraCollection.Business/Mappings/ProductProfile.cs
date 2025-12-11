@@ -16,7 +16,7 @@ public class ProductProfile:Profile
             opt=>opt.MapFrom(src=>TimeZoneInfo.ConvertTime(src.CreatedAt.UtcDateTime,turkeyTimeZone)))
             .ForMember(
                 dest=>dest.UpdatedAt,
-                opt=>opt.MapFrom(src=>TimeZoneInfo.ConvertTime(src.UpdateAt.UtcDateTime,turkeyTimeZone)))
+                opt=>opt.MapFrom(src=>TimeZoneInfo.ConvertTime(src.UpdatedAt.UtcDateTime,turkeyTimeZone)))
                 .ForMember(
                     dest=>dest.DeletedAt,
                     opt=>opt.MapFrom(src=>TimeZoneInfo.ConvertTime(src.DeletedAt.UtcDateTime,turkeyTimeZone)))

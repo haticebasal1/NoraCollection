@@ -30,7 +30,7 @@ public class Order : BaseEntity, IEntity
     }
     private Order() { }
     public string? UserId { get; set; }
-    public User? User { get; set; } 
+    public User? User { get; set; }
 
     public string? CustomerName { get; set; } // Sipariş anındaki müşteri adı
     public string? PhoneNumber { get; set; }  // Sipariş anındaki telefon numarası
