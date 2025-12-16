@@ -30,9 +30,9 @@ public class UnitOfWork : IUnitOfWork
         return await _appDbContext.SaveChangesAsync();
     }
 
-    IGenerıcRepository<TEntity> IUnitOfWork.GetRepository<TEntity>()
+    IGenericRepository<TEntity> IUnitOfWork.GetRepository<TEntity>()
     {
-       var repository = _serviceProvider.GetRequiredService<IGenerıcRepository<TEntity>>();
+       var repository = _serviceProvider.GetRequiredService<IGenericRepository<TEntity>>();
        return repository;
     }
 }

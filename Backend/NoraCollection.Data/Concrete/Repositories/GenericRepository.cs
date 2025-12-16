@@ -6,7 +6,7 @@ using NoraCollection.Entities.Abstract;
 
 namespace NoraCollection.Data.Concrete.Repositories;
 
-public class GenericRepository<TEntity> : IGenerıcRepository<TEntity>
+public class GenericRepository<TEntity> : IGenericRepository<TEntity>
 where TEntity : class, IEntity
 {
     private readonly AppDbContext _appDbContext;
