@@ -4,7 +4,7 @@ using NoraCollection.Entities.Abstract;
 
 namespace NoraCollection.Data.Abstract;
 
-public interface IGenerıcRepository<TEntity> where TEntity : class,IEntity
+public interface IGenericRepository<TEntity> where TEntity : class,IEntity
 {
   Task<TEntity> GetAsync(
     Expression<Func<TEntity, bool>>
