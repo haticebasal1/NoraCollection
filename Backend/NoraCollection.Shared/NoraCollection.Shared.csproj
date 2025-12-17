@@ -8,6 +8,13 @@
 
   <ItemGroup>
     <Folder Include="Configurations/" />
+    <Folder Include="Dtos/BlogCategoryDtos/" />
+    <Folder Include="Dtos/BlogPostDtos/" />
+    <Folder Include="Dtos/ColorDtos/" />
+    <Folder Include="Dtos/HeroBannerDtos/" />
+    <Folder Include="Dtos/ProductImageDtos/" />
+    <Folder Include="Dtos/StaticPageDtos/" />
+    <Folder Include="Dtos/StoneTypeDtos/" />
   </ItemGroup>
 
   <ItemGroup>
