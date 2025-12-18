@@ -1,8 +1,9 @@
 using System;
+using NoraCollection.Entities.Abstract;
 
 namespace NoraCollection.Entities.Concrete;
 
-public class GiftOption
+public class GiftOption:BaseEntity,IEntity
 {
     public GiftOption(string name, decimal price)
     {
