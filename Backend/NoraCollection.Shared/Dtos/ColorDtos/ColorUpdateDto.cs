@@ -14,3 +14,4 @@ public class ColorUpdateDto
     public string HexCode { get; set; } = null!;
     public string? Slug { get; set; }
 }
+

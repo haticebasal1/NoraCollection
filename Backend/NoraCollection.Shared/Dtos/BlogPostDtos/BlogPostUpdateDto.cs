@@ -25,3 +25,4 @@ public class BlogPostUpdateDto
     public int BlogCategoryId { get; set; }
     public bool IsPublished { get; set; }
 }
+

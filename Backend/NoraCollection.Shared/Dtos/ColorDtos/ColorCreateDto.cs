@@ -12,3 +12,4 @@ public class ColorCreateDto
     public string HexCode { get; set; } = null!;
     public string? Slug { get; set; }
 }
+

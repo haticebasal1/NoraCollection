@@ -14,3 +14,4 @@ public class ProductImageCreateDto
     public int DisplayOrder { get; set; }=0;
     public bool IsMain { get; set; } =false;     
 }
+

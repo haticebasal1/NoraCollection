@@ -11,8 +11,10 @@
     <Folder Include="Dtos/BlogCategoryDtos/" />
     <Folder Include="Dtos/BlogPostDtos/" />
     <Folder Include="Dtos/ColorDtos/" />
+    <Folder Include="Dtos/GiftOptionDtos/" />
     <Folder Include="Dtos/HeroBannerDtos/" />
     <Folder Include="Dtos/ProductImageDtos/" />
+    <Folder Include="Dtos/SiteSettingDtos/" />
     <Folder Include="Dtos/StaticPageDtos/" />
     <Folder Include="Dtos/StoneTypeDtos/" />
   </ItemGroup>

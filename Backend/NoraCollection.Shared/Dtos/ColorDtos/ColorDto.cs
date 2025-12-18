@@ -9,3 +9,4 @@ public class ColorDto
     public string HexCode { get; set; } = null!;
     public string? Slug { get; set; }
 }
+

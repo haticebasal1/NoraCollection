@@ -13,3 +13,4 @@ public class StaticPageDto
     public bool IsPublished { get; set; }
     public int DisplayOrder { get; set; }
 }
+

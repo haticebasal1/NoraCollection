@@ -18,3 +18,4 @@ public class StaticPageCreateDto
     public bool IsPublished { get; set; }=true;
     public int DisplayOrder { get; set; }=0;
 }
+

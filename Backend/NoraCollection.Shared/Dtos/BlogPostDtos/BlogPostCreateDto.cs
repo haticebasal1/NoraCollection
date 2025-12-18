@@ -23,3 +23,4 @@ public class BlogPostCreateDto
     public int BlogCategoryId { get; set; }
     public bool IsPublished { get; set; } = false;
 }
+

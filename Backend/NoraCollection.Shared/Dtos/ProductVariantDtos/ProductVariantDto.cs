@@ -12,3 +12,4 @@ public class ProductVariantDto
     public decimal? PriceAdjustment { get; set; }
     public bool IsInStock => Stock > 0;
 }
+

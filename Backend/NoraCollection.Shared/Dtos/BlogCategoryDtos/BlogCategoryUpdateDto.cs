@@ -14,3 +14,4 @@ public class BlogCategoryUpdateDto
     public string Slug { get; set; } = null!;
     public string? Description { get; set; }
 }
+

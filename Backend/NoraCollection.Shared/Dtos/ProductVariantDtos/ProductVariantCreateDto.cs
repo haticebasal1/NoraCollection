@@ -14,3 +14,4 @@ public class ProductVariantCreateDto
     public int Stock { get; set; } = 0;
     public decimal? PriceAdjustment { get; set; }
 }
+

@@ -1,19 +1,18 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace NoraCollection.Shared.Dtos.StoneTypeDtos;
+namespace NoraCollection.Shared.Dtos.GiftOptionDtos;
 
-public class StoneTypeUpdateDto
+public class GiftOptionUpdateDto
 {
     [Required]
     public int Id { get; set; }
-
-    [Required(ErrorMessage = "Taş adı zorunludur!")]
+    
+    [Required(ErrorMessage ="Ad zorunludur!")]
     public string Name { get; set; } = null!;
-
-    [Required(ErrorMessage = "Slug zorunludur!")]
-    public string Slug { get; set; } = null!;
+    
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
+    public decimal Price { get; set; }
+    public bool IsActive { get; set; }
 }
-
