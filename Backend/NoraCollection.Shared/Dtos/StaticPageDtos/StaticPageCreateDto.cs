@@ -19,3 +19,4 @@ public class StaticPageCreateDto
     public int DisplayOrder { get; set; }=0;
 }
 
+

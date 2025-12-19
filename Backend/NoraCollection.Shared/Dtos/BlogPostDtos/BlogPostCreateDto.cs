@@ -24,3 +24,4 @@ public class BlogPostCreateDto
     public bool IsPublished { get; set; } = false;
 }
 
+

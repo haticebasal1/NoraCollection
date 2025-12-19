@@ -15,3 +15,4 @@ public class ColorUpdateDto
     public string? Slug { get; set; }
 }
 
+

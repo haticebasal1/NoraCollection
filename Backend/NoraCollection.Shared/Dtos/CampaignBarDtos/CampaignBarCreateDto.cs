@@ -15,3 +15,4 @@ public class CampaignBarCreateDto
     public DateTime? EndDate { get; set; }
 }
 
+

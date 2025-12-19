@@ -21,3 +21,4 @@ public class HeroBannerCreateDto
     public DateTime? EndDate { get; set; }
 }
 
+

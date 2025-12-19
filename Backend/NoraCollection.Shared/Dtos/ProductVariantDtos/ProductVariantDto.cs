@@ -13,3 +13,4 @@ public class ProductVariantDto
     public bool IsInStock => Stock > 0;
 }
 
+

@@ -26,3 +26,4 @@ public class BlogPostUpdateDto
     public bool IsPublished { get; set; }
 }
 
+

@@ -15,3 +15,4 @@ public class ProductVariantCreateDto
     public decimal? PriceAdjustment { get; set; }
 }
 
+
