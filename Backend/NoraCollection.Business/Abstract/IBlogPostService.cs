@@ -8,7 +8,7 @@ public interface IBlogPostService
 {
   Task<ResponseDto<BlogPostDto>> GetByIdAsync(int id); // Tekil Getirme
   Task<ResponseDto<BlogPostDto>> GetBySlugAsync(string slug);
-  Task<ResponseDto<IEnumerable<BlogPostDto>>> GetAllAsync(int? categoryId=null, bool? isPublished = null);  // Çoklu Getirme
+  Task<ResponseDto<IEnumerable<BlogPostDto>>> GetAllAsync(int? categoryId = null, bool? isPublished = null);  // Çoklu Getirme
   Task<ResponseDto<IEnumerable<BlogPostDto>>> GetRecentAsync(int top = 5);
   Task<ResponseDto<BlogPostDto>> AddAsync(BlogPostCreateDto blogPostCreateDto);//Crud
   Task<ResponseDto<NoContentDto>> UpdateAsync(BlogPostUpdateDto blogPostUpdateDto);

@@ -14,5 +14,5 @@ public interface IHeroBannerService
   Task<ResponseDto<NoContentDto>> DeleteAsync(int id);
   Task<ResponseDto<NoContentDto>> ActivateAsync(int id);
   Task<ResponseDto<NoContentDto>> DeactivateAsync(int id);
-  Task<ResponseDto<NoContentDto>> UpdateDisplayOrderAsync(int id,int newOrder);
+  Task<ResponseDto<NoContentDto>> UpdateDisplayOrderAsync(int id, int newOrder);
 }
