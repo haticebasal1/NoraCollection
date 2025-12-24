@@ -19,4 +19,8 @@
     <ProjectReference Include="..\NoraCollection.Business\NoraCollection.Business.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers/BaseController/" />
+  </ItemGroup>
+
 </Project>

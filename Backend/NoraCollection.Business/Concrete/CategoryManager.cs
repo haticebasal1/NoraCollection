@@ -2,6 +2,7 @@ using System;
 using System.Text.RegularExpressions;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using System.Linq.Expressions;
 using NoraCollection.Business.Abstract;
 using NoraCollection.Data.Abstract;
 using NoraCollection.Entities.Concrete;
@@ -76,13 +77,13 @@ public class CategoryManager : ICategoryService
             int count;
             if (isDeleted == null)
             {
-                count = await _categoryRepository.CountAsync(includeDeleted:true);
+                count = await _categoryRepository.CountAsync(includeDeleted: true);
             }
             else if (isDeleted == true)
             {
                 count = await _categoryRepository.CountAsync(
-                    predicate: x=>x.IsDeleted == true,
-                    includeDeleted : true
+                    predicate: x => x.IsDeleted == true,
+                    includeDeleted: true
                 );
             }
             else
@@ -97,34 +98,196 @@ public class CategoryManager : ICategoryService
         }
     }
 
-    public Task<ResponseDto<IEnumerable<CategoryDto>>> GetAllAsync(bool? isDeleted = false)
+    public async Task<ResponseDto<IEnumerable<CategoryDto>>> GetAllAsync(bool? isDeleted = false)
     {
-        throw new NotImplementedException();
+        try
+        {
+            Expression<Func<Category, bool>> predicate;
+            bool includeDeleted;
+            if (isDeleted == null)
+            {
+                includeDeleted = true;
+                predicate = x => true;
+            }
+            else if (isDeleted == true)
+            {
+                includeDeleted = true;
+                predicate = x => x.IsDeleted;
+            }
+            else
+            {
+                includeDeleted = false;
+                predicate = x => !x.IsDeleted;
+            }
+            var categories = await _categoryRepository.GetAllAsync(
+                predicate: predicate,
+                includeDeleted: includeDeleted
+            );
+
+            var categoryDtos = _mapper.Map<IEnumerable<CategoryDto>>(categories);
+            return ResponseDto<IEnumerable<CategoryDto>>.Success(
+                categoryDtos,
+                StatusCodes.Status200OK
+            );
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<CategoryDto>>.Fail($"Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<CategoryDto>> GetAsync(int id)
+    public async Task<ResponseDto<CategoryDto>> GetAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await _categoryRepository.GetAsync(x => x.Id == id);
+            if (category is null)
+            {
+                return ResponseDto<CategoryDto>.Fail($"{id} id'li kategori bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var categoryDto = _mapper.Map<CategoryDto>(category);
+            return ResponseDto<CategoryDto>.Success(categoryDto, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<CategoryDto>.Fail($"Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<CategoryDto>> GetBySlugAsync(string slug)
+    public async Task<ResponseDto<CategoryDto>> GetBySlugAsync(string slug)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await _categoryRepository.GetAsync(x => x.Slug == slug && !x.IsDeleted);
+            if (category is null)
+            {
+                return ResponseDto<CategoryDto>.Fail($"{slug} slug'lı kategori bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var categoryDto = _mapper.Map<CategoryDto>(category);
+            return ResponseDto<CategoryDto>.Success(categoryDto, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<CategoryDto>.Fail($"Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await _categoryRepository.GetAsync(
+                predicate: x => x.Id == id,
+                includeDeleted: true
+            );
+            if (category is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{id} id'li kategori bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var hasProducts = await _productCategoryRepository.ExistsAsync(x => x.CategoryId == id);
+            if (hasProducts)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu kategoriye bağlı ürünler olduğu için silinemez!", StatusCodes.Status400BadRequest);
+            }
+            _categoryRepository.Delete(category);
+            var result = await _unitOfWork.SaveAsync();
+
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Kategori silinirken beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            if (!string.IsNullOrWhiteSpace(category.ImageUrl))
+            {
+                _imageManager.DeleteImage(category.ImageUrl);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await _categoryRepository.GetAsync(
+                predicate: x => x.Id == id,
+                includeDeleted: false
+            );
+            if (category is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{id} id'li kategori bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var hasProducts = await _productCategoryRepository.ExistsAsync(x => x.CategoryId == id);
+            if (hasProducts)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu kategoriye bağlı ürünler olduğu için silinemez!", StatusCodes.Status400BadRequest);
+            }
+            category.IsDeleted = true;
+            category.DeletedAt = DateTimeOffset.UtcNow;
+            _categoryRepository.Update(category);
+            var result = await _unitOfWork.SaveAsync();
+
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Kategori silinirken beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateAsync(CategoryUpdateDto categoryUpdateDto)
+    public async Task<ResponseDto<NoContentDto>> UpdateAsync(CategoryUpdateDto categoryUpdateDto)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await _categoryRepository.GetAsync(x => x.Id == categoryUpdateDto.Id);
+            if (category is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{categoryUpdateDto.Id} id'li kategori bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var oldImageUrl = category.ImageUrl;
+            string? newImageUrl = null;
+
+            if (categoryUpdateDto.Image is not null)
+            {
+                var imageUploadResult = await _imageManager.UploadAsync(categoryUpdateDto.Image, "categories");
+                if (!imageUploadResult.IsSuccessful)
+                {
+                    return ResponseDto<NoContentDto>.Fail(imageUploadResult.Errors, imageUploadResult.StatusCode);
+                }
+                var baseUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}";
+                newImageUrl = $"{baseUrl}/{imageUploadResult.Data!.TrimStart('/')}";
+            }
+            _mapper.Map(categoryUpdateDto, category);
+            if (newImageUrl is not null)
+            {
+                category.ImageUrl = newImageUrl;
+            }
+            category.Slug = GenerateSlug(category.Name!);
+            category.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _categoryRepository.Update(category);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Beklenmedik hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            if (newImageUrl is not null && !string.IsNullOrWhiteSpace(oldImageUrl))
+            {
+                _imageManager.DeleteImage(oldImageUrl);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
     private string GenerateSlug(string name)
     {
