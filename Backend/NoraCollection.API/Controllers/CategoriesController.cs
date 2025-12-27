@@ -36,6 +36,13 @@ namespace NoraCollection.API.Controllers
             return CreateResult(response);
         }
         [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> Add([FromForm] CategoryCreateDto categoryCreateDto)
+        {
+            var response = await _categoryManager.AddAsync(categoryCreateDto);
+            return CreateResult(response);
+        }
+        [Authorize(Roles = "Admin")]
         [HttpPut]
         public async Task<IActionResult> Update([FromForm] CategoryUpdateDto categoryUpdateDto)
         {

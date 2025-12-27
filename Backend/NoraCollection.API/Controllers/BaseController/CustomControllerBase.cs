@@ -7,13 +7,17 @@ namespace NoraCollection.API.Controllers.BaseController;
 
 public class CustomControllerBase : ControllerBase
 {
-    protected static IActionResult CreateResult<T>(ResponseDto<T> response)
+    protected IActionResult CreateResult<T>(ResponseDto<T> response)
     {
+        if (response.StatusCode == StatusCodes.Status204NoContent)
+        {
+            return new StatusCodeResult(StatusCodes.Status204NoContent);
+        }
         return new ObjectResult(response) { StatusCode = response.StatusCode };
     }
-    protected string UserId =>User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+    protected string? UserId => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-    protected string UserMail =>User.FindFirst(ClaimTypes.Email)!.Value;
+    protected string? UserMail => User.FindFirst(ClaimTypes.Email)?.Value;
 
-    protected bool IsAdmin =>User.IsInRole("Admin");
+    protected bool IsAdmin => User.IsInRole("Admin");
 }

@@ -43,7 +43,7 @@ public class CategoryManager : ICategoryService
             {
                 return ResponseDto<CategoryDto>.Fail("Resim zorunludur!", StatusCodes.Status400BadRequest);
             }
-            var imageUploadResult = await _imageManager.UploadAsync(categoryCreateDto.Image, "categories");
+            var imageUploadResult = await _imageManager.ResizeAndUploadAsync(categoryCreateDto.Image, "categories");
             if (!imageUploadResult.IsSuccessful)
             {
                 return ResponseDto<CategoryDto>.Fail(imageUploadResult.Errors, imageUploadResult.StatusCode);
@@ -58,6 +58,7 @@ public class CategoryManager : ICategoryService
 
             if (result < 1)
             {
+                _imageManager.DeleteImage(category.ImageUrl);
                 return ResponseDto<CategoryDto>.Fail("Beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
             }
 
@@ -251,12 +252,17 @@ public class CategoryManager : ICategoryService
             {
                 return ResponseDto<NoContentDto>.Fail($"{categoryUpdateDto.Id} id'li kategori bulunamadı!", StatusCodes.Status404NotFound);
             }
+            var isNameExists= await _categoryRepository.ExistsAsync(x=>x.Name!.ToLower() == categoryUpdateDto.Name!.ToLower() && x.Id != categoryUpdateDto.Id);
+            if (isNameExists)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu isimde bir kategori zaten var!",StatusCodes.Status400BadRequest);
+            }
             var oldImageUrl = category.ImageUrl;
             string? newImageUrl = null;
 
             if (categoryUpdateDto.Image is not null)
             {
-                var imageUploadResult = await _imageManager.UploadAsync(categoryUpdateDto.Image, "categories");
+                var imageUploadResult = await _imageManager.ResizeAndUploadAsync(categoryUpdateDto.Image, "categories");
                 if (!imageUploadResult.IsSuccessful)
                 {
                     return ResponseDto<NoContentDto>.Fail(imageUploadResult.Errors, imageUploadResult.StatusCode);
@@ -276,6 +282,7 @@ public class CategoryManager : ICategoryService
             var result = await _unitOfWork.SaveAsync();
             if (result < 1)
             {
+                if (newImageUrl is not null) _imageManager.DeleteImage(newImageUrl);
                 return ResponseDto<NoContentDto>.Fail("Beklenmedik hata oluştu!", StatusCodes.Status500InternalServerError);
             }
             if (newImageUrl is not null && !string.IsNullOrWhiteSpace(oldImageUrl))
