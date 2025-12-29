@@ -11,3 +11,4 @@ public class ProductImageCreateDto
     public bool IsMain { get; set; } = false;
 }
 
+

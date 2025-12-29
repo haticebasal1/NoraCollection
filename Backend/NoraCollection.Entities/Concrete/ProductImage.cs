@@ -22,3 +22,4 @@ public class ProductImage : BaseEntity, IEntity
     public Product Product { get; set; } = null!;       // Navigation property
 }
 
+

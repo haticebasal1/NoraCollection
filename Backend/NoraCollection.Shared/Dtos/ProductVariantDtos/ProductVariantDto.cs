@@ -11,3 +11,4 @@ public class ProductVariantDto
     public bool IsAvailable { get; set; }
 }
 
+

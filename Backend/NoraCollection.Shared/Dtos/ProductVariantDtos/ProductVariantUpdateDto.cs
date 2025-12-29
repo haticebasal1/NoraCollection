@@ -10,3 +10,4 @@ public class ProductVariantUpdateDto
     public bool IsAvailable { get; set; }
 }
 
+

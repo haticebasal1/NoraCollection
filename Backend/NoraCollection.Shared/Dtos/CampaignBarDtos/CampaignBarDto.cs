@@ -12,3 +12,4 @@ public class CampaignBarDto
     public DateTime? EndDate { get; set; }
 }
 
+

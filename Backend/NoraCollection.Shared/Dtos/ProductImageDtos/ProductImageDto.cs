@@ -10,3 +10,4 @@ public class ProductImageDto
     public bool IsMain { get; set; }
 }
 
+

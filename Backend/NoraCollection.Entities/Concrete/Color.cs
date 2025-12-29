@@ -21,3 +21,4 @@ public class Color : BaseEntity, IEntity
     public ICollection<Product> Products { get; set; } = [];
 }
 
+

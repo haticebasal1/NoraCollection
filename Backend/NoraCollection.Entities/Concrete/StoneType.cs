@@ -21,3 +21,4 @@ public class StoneType : BaseEntity, IEntity
     public ICollection<Product> Products { get; set; } = [];
 }
 
+

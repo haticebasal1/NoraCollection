@@ -17,3 +17,4 @@ public class HeroBannerUpdateDto
     public DateTime? EndDate { get; set; }
 }
 
+
