@@ -18,7 +18,7 @@ public class ProductImageManager : IProductImageService
     private readonly IImageService _imageService;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public ProductImageManager(IUnitOfWork unitOfWork, IGenericRepository<ProductImage> productImageRepository, IGenericRepository<Product> productRepository, IMapper mapper, IImageService imageService, IHttpContextAccessor httpContextAccessor)
+    public ProductImageManager(IUnitOfWork unitOfWork, IMapper mapper, IImageService imageService, IHttpContextAccessor httpContextAccessor)
     {
         _unitOfWork = unitOfWork;
         _productImageRepository = _unitOfWork.GetRepository<ProductImage>();
@@ -113,12 +113,8 @@ public class ProductImageManager : IProductImageService
         try
         {
             var images = await _productImageRepository.GetAllAsync(x => x.ProductId == productId && !x.IsDeleted);
-            if (images == null || !images.Any())
-            {
-                return ResponseDto<IEnumerable<ProductImageDto>>.Fail("Bu ürüne ait herhangi bir görsel bulunamadı!", StatusCodes.Status200OK);
-            }
-
-            var orderedImages = images.OrderBy(x => x.DisplayOrder).ThenByDescending(x => x.IsMain);
+            
+            var orderedImages = images?.OrderBy(x => x.DisplayOrder).ThenByDescending(x => x.IsMain) ?? Enumerable.Empty<ProductImage>();
             var imagesMapper = _mapper.Map<IEnumerable<ProductImageDto>>(orderedImages);
             return ResponseDto<IEnumerable<ProductImageDto>>.Success(imagesMapper, StatusCodes.Status200OK);
         }
