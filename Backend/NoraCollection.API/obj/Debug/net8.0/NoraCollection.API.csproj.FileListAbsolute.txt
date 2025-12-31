@@ -199,3 +199,6 @@
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/obj/Debug/net8.0/ref/NoraCollection.API.dll
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/AutoMapper.dll
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/Newtonsoft.Json.dll
+/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/SixLabors.Fonts.dll
+/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/SixLabors.ImageSharp.dll
+/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/SixLabors.ImageSharp.Drawing.dll

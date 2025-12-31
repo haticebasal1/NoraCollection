@@ -25,6 +25,7 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<ICategoryService, CategoryManager>();
 builder.Services.AddScoped<IImageService, ImageManager>();
 builder.Services.AddScoped<IProductImageService, ProductImageManager>();
+builder.Services.AddScoped<IProductVariantService, ProductVariantManager>();
 
 var app = builder.Build();
 
