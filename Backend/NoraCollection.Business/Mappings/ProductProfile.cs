@@ -31,11 +31,11 @@ public class ProductProfile : Profile
         CreateMap<ProductCreateDto, Product>();
         CreateMap<ProductUpdateDto, Product>();
         CreateMap<Product, ProductWithVariantsDto>()
-             .IncludeBase<Product, ProductDto>()  // ProductDto mapping'ini kullan
-              .ForMember(dest => dest.StoneTypeName, opt => opt.MapFrom(src => src.StoneType != null ? src.StoneType.Name : null))
-             .ForMember(dest => dest.ColorName, opt => opt.MapFrom(src => src.Color != null ? src.Color.Name : null))
-             .ForMember(dest => dest.ColorHexCode, opt => opt.MapFrom(src => src.Color != null ? src.Color.HexCode : null))
-             .ForMember(dest => dest.ProductVariants, opt => opt.MapFrom(src => src.ProductVariants))
-             .ForMember(dest => dest.ProductImages, opt => opt.MapFrom(src => src.ProductImages));
+            .IncludeBase<Product, ProductDto>()  // ✅ timezone conversion'ları da getirir
+            .ForMember(dest => dest.StoneTypeName, opt => opt.MapFrom(src => src.StoneType != null ? src.StoneType.Name : null))
+            .ForMember(dest => dest.ColorName, opt => opt.MapFrom(src => src.Color != null ? src.Color.Name : null))
+            .ForMember(dest => dest.ColorHexCode, opt => opt.MapFrom(src => src.Color != null ? src.Color.HexCode : null))
+            .ForMember(dest => dest.ProductVariants, opt => opt.MapFrom(src => src.ProductVariants))
+            .ForMember(dest => dest.ProductImages, opt => opt.MapFrom(src => src.ProductImages));
     }
 }
