@@ -8,7 +8,7 @@ public interface IProductService
 {
   Task<ResponseDto<ProductDto>> GetAsync(int id, bool includeCategories = false);
   Task<ResponseDto<ProductWithVariantsDto>> GetWithVariantsByIdAsync(int id);
-  Task<ResponseDto<ProductDto>> GetBySlugAsync(string slug,bool includeCategories = false);
+  Task<ResponseDto<ProductDto>> GetBySlugAsync(string slug, bool includeCategories = false);
   Task<ResponseDto<IEnumerable<ProductDto>>> GetAllAsync(
     bool includeCategories = false,
     int? categoryId = null,
@@ -19,14 +19,14 @@ public interface IProductService
     string? orderBy = null
   );
   // Kategori slug'ı ile ürünleri getirir (SEO için önemli!)
-Task<ResponseDto<IEnumerable<ProductDto>>> GetByCategorySlugAsync(
-    string categorySlug,
-    int? stoneTypeId = null,
-    int? colorId = null,
-    decimal? minPrice = null,
-    decimal? maxPrice = null
-);
-Task<ResponseDto<IEnumerable<ProductDto>>> SearchAsync(string searchTerm);
+  Task<ResponseDto<IEnumerable<ProductDto>>> GetByCategorySlugAsync(
+      string categorySlug,
+      int? stoneTypeId = null,
+      int? colorId = null,
+      decimal? minPrice = null,
+      decimal? maxPrice = null
+  );
+  Task<ResponseDto<IEnumerable<ProductDto>>> SearchAsync(string searchTerm);
   Task<ResponseDto<IEnumerable<ProductDto>>> GetAllDeletedAsync();
   Task<ResponseDto<IEnumerable<ProductDto>>> GetHomePageAsync(int? top = null);
   Task<ResponseDto<IEnumerable<ProductDto>>> GetBestSellersAsync(int? top = null);
