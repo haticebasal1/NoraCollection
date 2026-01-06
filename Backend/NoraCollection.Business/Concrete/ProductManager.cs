@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using AutoMapper;
@@ -129,7 +130,7 @@ public class ProductManager : IProductService
             bool deletedStatus = isDeleted ?? false;
             // 2. Başlangıç filtresi
             Expression<Func<Product, bool>> predicate = x => x.IsDeleted == deletedStatus;
-             // 3. Kategori filtresi varsa, mevcut filtreyi bozmadan üzerine ekle
+            // 3. Kategori filtresi varsa, mevcut filtreyi bozmadan üzerine ekle
             if (categoryId.HasValue)
             {
                 var categoryIdValue = categoryId.Value;
@@ -147,9 +148,92 @@ public class ProductManager : IProductService
         }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetAllAsync(bool includeCategories = false, int? categoryId = null, int? stoneTypeId = null, int? colorId = null, decimal? minPrice = null, decimal? maxPrice = null, string? orderBy = null)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetAllAsync(bool includeCategories = false, int? categoryId = null, int? stoneTypeId = null, int? colorId = null, decimal? minPrice = null, decimal? maxPrice = null, string? orderBy = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            // 1️⃣ TEMEL PREDICATE: Sadece silinmemiş ürünleri getir
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted;
+            // 2️⃣ KATEGORİ FİLTRESİ: Eğer categoryId verilmişse, o kategorideki ürünleri filtrele
+            if (categoryId.HasValue)
+            {
+                var categoryIdValue = categoryId.Value;
+                predicate = CombinePredicates(predicate, x => x.ProductCategories.Any(pc => pc.CategoryId == categoryIdValue));
+            }
+            // 3️⃣ STONE TYPE FİLTRESİ: Eğer stoneTypeId verilmişse, o taş tipindeki ürünleri filtrele
+            if (stoneTypeId.HasValue)
+            {
+                var stoneTypeIdValue = stoneTypeId.Value;
+                predicate = CombinePredicates(predicate, x => x.StoneTypeId == stoneTypeIdValue);
+            }
+             // 4️⃣ COLOR FİLTRESİ: Eğer colorId verilmişse, o renkteki ürünleri filtrele
+            if (colorId.HasValue)
+            {
+                var colorIdValue = colorId.Value;
+                predicate = CombinePredicates(predicate, x => x.ColorId == colorIdValue);
+            }
+            // 5️⃣ MİNİMUM FİYAT FİLTRESİ: Eğer minPrice verilmişse, o fiyattan yüksek ürünleri filtrele
+            if (minPrice.HasValue)
+            {
+                var minPriceValue = minPrice.Value;
+                predicate = CombinePredicates(predicate, x => (x.DiscountedPrice ?? x.Price) >= minPriceValue);
+            }
+             // 6️⃣ MAKSİMUM FİYAT FİLTRESİ: Eğer maxPrice verilmişse, o fiyattan düşük ürünleri filtrele
+            if (maxPrice.HasValue)
+            {
+                var maxPriceValue = maxPrice.Value;
+                predicate = CombinePredicates(predicate, x => (x.DiscountedPrice ?? x.Price) <= maxPriceValue);
+            }
+            // 7️⃣ INCLUDE LİSTESİ: İlişkili tabloları bağlıyoruz
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>();
+            // StoneType ve Color her zaman include et (küçük veri, DTO'da boş kalmaması için)
+            includeList.Add(
+              query => query.Include(x => x.StoneType)
+            );
+            includeList.Add(
+              query => query.Include(x => x.Color)
+             );
+             // Kategoriler sadece istenirse include et
+             if (includeCategories)
+             {
+                includeList.Add(query => query.Include(x=>x.ProductCategories).ThenInclude(y=>y.Category));
+             }
+             // 8️⃣ ORDER BY: Sıralama mantığı
+             Func<IQueryable<Product>,IOrderedQueryable<Product>>? orderByFunc= null;
+             if (!string.IsNullOrWhiteSpace(orderBy))
+             {
+                orderBy = orderBy.ToLowerInvariant();
+                orderByFunc = orderBy switch
+                {
+                    "price-asc" => query => query.OrderBy(x=>x.DiscountedPrice ?? x.Price), // Fiyat: Düşükten Yükseğe
+                    "price-desc" => query => query.OrderByDescending(x=>x.DiscountedPrice ?? x.Price),// Fiyat: Yüksekten Düşüğe
+                    "name-asc" => query => query.OrderBy(x=>x.Name),// İsim: A-Z
+                    "name-desc" => query => query.OrderByDescending(x=>x.Name),// İsim: Z-A
+                    "newest" => query => query.OrderByDescending(x=>x.CreatedAt),// En Yeni
+                    "oldest" => query => query.OrderBy(x=>x.CreatedAt),// En Eski
+                    _ => query => query.OrderByDescending(x=>x.Id)// Varsayılan: Id'ye göre
+                };
+             }
+             else
+             {
+                // Varsayılan sıralama: En yeni eklenenler en üstte (orderBy verilmezse)
+                orderByFunc = query=>query.OrderByDescending(x=>x.CreatedAt);
+             }
+              // 9️⃣ REPOSITORY'DEN VERİ ÇEKME
+             var products = await _productRepository.GetAllAsync(
+                predicate:predicate,
+                orderby:orderByFunc,
+                includeDeleted : false,
+                includes: includeList.ToArray()
+             );
+             // 🔟 MAPPING: Entity'leri DTO'lara dönüştür
+             var productDtos= _mapper.Map<IEnumerable<ProductDto>>(products);
+             return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos,StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Beklenmedik Hata : {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
     public Task<ResponseDto<IEnumerable<ProductDto>>> GetAllDeletedAsync()
@@ -277,6 +361,43 @@ public class ProductManager : IProductService
         slug = slug.Trim('-');
 
         return slug;
+    }
+    // Helper Method: İki Expression'ı AND operatörü ile birleştirir
+    // Bu metod, birden fazla filtreyi güvenli bir şekilde birleştirmek için kullanılır
+    private Expression<Func<Product, bool>> CombinePredicates(
+        Expression<Func<Product, bool>> first,
+        Expression<Func<Product, bool>> second
+    )
+    {
+        // Ortak bir parametre oluştur (her iki expression'da da "x" kullanılıyor)
+        var parameter = Expression.Parameter(typeof(Product), "x");
+        // İlk expression'daki parametreyi yeni parametreyle değiştir
+        var leftVisitor = new ReplaceExpressionVisitor(first.Parameters[0], parameter);
+        var left = leftVisitor.Visit(first.Body);
+        // İkinci expression'daki parametreyi yeni parametreyle değiştir
+        var rightVisitor = new ReplaceExpressionVisitor(second.Parameters[0], parameter);
+        var right = rightVisitor.Visit(second.Body);
+        // İki expression'ı AND operatörü ile birleştir
+        return Expression.Lambda<Func<Product, bool>>(Expression.AndAlso(left!, right!), parameter);
+    }
+    // Expression'lardaki parametre çakışmasını önlemek için yardımcı class
+    // Bu class, bir expression'daki parametreyi başka bir parametreyle değiştirir
+    private class ReplaceExpressionVisitor : ExpressionVisitor
+    {
+        private readonly Expression _from;
+        private readonly Expression _to;
+
+        public ReplaceExpressionVisitor(Expression from, Expression to)
+        {
+            _from = from;
+            _to = to;
+        }
+        public override Expression? Visit(Expression? node)
+        {
+            // Eğer ziyaret edilen node, değiştirilmesi gereken parametre ise, yeni parametreyi döndür
+            // Değilse, normal ziyaret işlemini devam ettir
+            return node == _from ? _to : base.Visit(node);
+        }
     }
 }
 
