@@ -166,7 +166,7 @@ public class ProductManager : IProductService
                 var stoneTypeIdValue = stoneTypeId.Value;
                 predicate = CombinePredicates(predicate, x => x.StoneTypeId == stoneTypeIdValue);
             }
-             // 4️⃣ COLOR FİLTRESİ: Eğer colorId verilmişse, o renkteki ürünleri filtrele
+            // 4️⃣ COLOR FİLTRESİ: Eğer colorId verilmişse, o renkteki ürünleri filtrele
             if (colorId.HasValue)
             {
                 var colorIdValue = colorId.Value;
@@ -178,7 +178,7 @@ public class ProductManager : IProductService
                 var minPriceValue = minPrice.Value;
                 predicate = CombinePredicates(predicate, x => (x.DiscountedPrice ?? x.Price) >= minPriceValue);
             }
-             // 6️⃣ MAKSİMUM FİYAT FİLTRESİ: Eğer maxPrice verilmişse, o fiyattan düşük ürünleri filtrele
+            // 6️⃣ MAKSİMUM FİYAT FİLTRESİ: Eğer maxPrice verilmişse, o fiyattan düşük ürünleri filtrele
             if (maxPrice.HasValue)
             {
                 var maxPriceValue = maxPrice.Value;
@@ -193,42 +193,42 @@ public class ProductManager : IProductService
             includeList.Add(
               query => query.Include(x => x.Color)
              );
-             // Kategoriler sadece istenirse include et
-             if (includeCategories)
-             {
-                includeList.Add(query => query.Include(x=>x.ProductCategories).ThenInclude(y=>y.Category));
-             }
-             // 8️⃣ ORDER BY: Sıralama mantığı
-             Func<IQueryable<Product>,IOrderedQueryable<Product>>? orderByFunc= null;
-             if (!string.IsNullOrWhiteSpace(orderBy))
-             {
+            // Kategoriler sadece istenirse include et
+            if (includeCategories)
+            {
+                includeList.Add(query => query.Include(x => x.ProductCategories).ThenInclude(y => y.Category));
+            }
+            // 8️⃣ ORDER BY: Sıralama mantığı
+            Func<IQueryable<Product>, IOrderedQueryable<Product>>? orderByFunc = null;
+            if (!string.IsNullOrWhiteSpace(orderBy))
+            {
                 orderBy = orderBy.ToLowerInvariant();
                 orderByFunc = orderBy switch
                 {
-                    "price-asc" => query => query.OrderBy(x=>x.DiscountedPrice ?? x.Price), // Fiyat: Düşükten Yükseğe
-                    "price-desc" => query => query.OrderByDescending(x=>x.DiscountedPrice ?? x.Price),// Fiyat: Yüksekten Düşüğe
-                    "name-asc" => query => query.OrderBy(x=>x.Name),// İsim: A-Z
-                    "name-desc" => query => query.OrderByDescending(x=>x.Name),// İsim: Z-A
-                    "newest" => query => query.OrderByDescending(x=>x.CreatedAt),// En Yeni
-                    "oldest" => query => query.OrderBy(x=>x.CreatedAt),// En Eski
-                    _ => query => query.OrderByDescending(x=>x.Id)// Varsayılan: Id'ye göre
+                    "price-asc" => query => query.OrderBy(x => x.DiscountedPrice ?? x.Price), // Fiyat: Düşükten Yükseğe
+                    "price-desc" => query => query.OrderByDescending(x => x.DiscountedPrice ?? x.Price),// Fiyat: Yüksekten Düşüğe
+                    "name-asc" => query => query.OrderBy(x => x.Name),// İsim: A-Z
+                    "name-desc" => query => query.OrderByDescending(x => x.Name),// İsim: Z-A
+                    "newest" => query => query.OrderByDescending(x => x.CreatedAt),// En Yeni
+                    "oldest" => query => query.OrderBy(x => x.CreatedAt),// En Eski
+                    _ => query => query.OrderByDescending(x => x.Id)// Varsayılan: Id'ye göre
                 };
-             }
-             else
-             {
+            }
+            else
+            {
                 // Varsayılan sıralama: En yeni eklenenler en üstte (orderBy verilmezse)
-                orderByFunc = query=>query.OrderByDescending(x=>x.CreatedAt);
-             }
-              // 9️⃣ REPOSITORY'DEN VERİ ÇEKME
-             var products = await _productRepository.GetAllAsync(
-                predicate:predicate,
-                orderby:orderByFunc,
-                includeDeleted : false,
-                includes: includeList.ToArray()
-             );
-             // 🔟 MAPPING: Entity'leri DTO'lara dönüştür
-             var productDtos= _mapper.Map<IEnumerable<ProductDto>>(products);
-             return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos,StatusCodes.Status200OK);
+                orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+            }
+            // 9️⃣ REPOSITORY'DEN VERİ ÇEKME
+            var products = await _productRepository.GetAllAsync(
+               predicate: predicate,
+               orderby: orderByFunc,
+               includeDeleted: false,
+               includes: includeList.ToArray()
+            );
+            // 🔟 MAPPING: Entity'leri DTO'lara dönüştür
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
         }
         catch (Exception ex)
         {
@@ -236,79 +236,546 @@ public class ProductManager : IProductService
         }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetAllDeletedAsync()
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetAllDeletedAsync()
     {
-        throw new NotImplementedException();
+        try
+        {
+            // 1️⃣ Sadece silinmiş ürünler (Soft Delete)
+            Expression<Func<Product, bool>> predicate = x => x.IsDeleted;
+            // 2️⃣ Include listesi
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query => query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color),
+                query => query.Include(x=>x.ProductCategories)
+                .ThenInclude(pc=>pc.Category),
+            };
+            // 3️⃣ Repository çağrısı
+            // Silinmiş ürünlerde DeletedAt ile sıralamak daha mantıklı
+            var products = await _productRepository.GetAllAsync(
+                predicate: predicate,
+                orderby: query => query.OrderByDescending(x => x.DeletedAt),
+                includeDeleted: true,
+                includes: includeList.ToArray()
+            );
+
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Beklenmedik Hata : {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<ProductDto>> GetAsync(int id, bool includeCategories = false)
+    public async Task<ResponseDto<ProductDto>> GetAsync(int id, bool includeCategories = false)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>();
+
+            includeList.Add(query => query.Include(x => x.StoneType));
+            includeList.Add(query => query.Include(x => x.Color));
+            if (includeCategories)
+            {
+                includeList.Add(query => query.Include(x => x.ProductCategories).ThenInclude(y => y.Category));
+            }
+
+            var product = await _productRepository.GetAsync(
+                predicate: x => x.Id == id,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+
+            if (product is null)
+            {
+                return ResponseDto<ProductDto>.Fail("Ürün bulunamadı!", StatusCodes.Status404NotFound);
+            }
+
+            var productDto = _mapper.Map<ProductDto>(product);
+            return ResponseDto<ProductDto>.Success(productDto, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<ProductDto>.Fail($"Beklenmedik Hata : {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetBestSellersAsync(int? top = null)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetBestSellersAsync(int? top = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            // 1️⃣ Predicate: Sadece aktif ürünler
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && x.IsBestSeller;
+            // 2️⃣ Include listesi
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+         {
+             query => query.Include(x=>x.StoneType),
+             query => query.Include(x=>x.Color)
+         };
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+            // 3️⃣ Repository'den tüm aktif ürünleri çek
+            var products = await _productRepository.GetAllAsync(
+              predicate: predicate,
+              top: top,
+              orderby: orderByFunc,
+              includeDeleted: false,
+              includes: includeList.ToArray()
+            );
+
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Beklenmedik Hata : {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetByCategorySlugAsync(string categorySlug, int? stoneTypeId = null, int? colorId = null, decimal? minPrice = null, decimal? maxPrice = null)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetByCategorySlugAsync(string categorySlug, int? stoneTypeId = null, int? colorId = null, decimal? minPrice = null, decimal? maxPrice = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            // 1️⃣ KATEGORİ KONTROLÜ: Slug'a göre kategoriyi bul
+            var category = await _categoryRepository.GetAsync(
+             predicate: x => x.Slug == categorySlug && !x.IsDeleted
+            );
+
+            if (category is null)
+            {
+                return ResponseDto<IEnumerable<ProductDto>>.Fail($"{categorySlug} slug'ına sahip kategori bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            // 2️⃣ TEMEL PREDICATE: Sadece silinmemiş ürünler ve belirtilen kategorideki ürünler
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && x.ProductCategories.Any(pc => pc.CategoryId == category.Id);
+            // 3️⃣ STONE TYPE FİLTRESİ
+            if (stoneTypeId.HasValue)
+            {
+                var stoneTypeIdValue = stoneTypeId.Value;
+                predicate = CombinePredicates(predicate, x => x.StoneTypeId == stoneTypeIdValue);
+            }
+            if (colorId.HasValue)
+            {
+                var colorIdValue = colorId.Value;
+                predicate = CombinePredicates(predicate, x => x.ColorId == colorIdValue);
+            }
+            if (minPrice.HasValue)
+            {
+                var minPriceValue = minPrice.Value;
+                predicate = CombinePredicates(predicate, x => (x.DiscountedPrice ?? x.Price) >= minPriceValue);
+            }
+            if (maxPrice.HasValue)
+            {
+                var maxPriceValue = maxPrice.Value;
+                predicate = CombinePredicates(predicate, x => (x.DiscountedPrice ?? x.Price) <= maxPriceValue);
+            }
+            // 7️⃣ INCLUDE LİSTESİ: StoneType ve Color her zaman include et
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query=>query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            // 8️⃣ SIRALAMA: Varsayılan olarak en yeni eklenenler en üstte
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+
+            var products = await _productRepository.GetAllAsync(
+             predicate: predicate,
+             orderby: orderByFunc,
+             includeDeleted: false,
+             includes: includeList.ToArray()
+            );
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Beklenmedik Hata : {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<ProductDto>> GetBySlugAsync(string slug, bool includeCategories = false)
+    public async Task<ResponseDto<ProductDto>> GetBySlugAsync(string slug, bool includeCategories = false)
     {
-        throw new NotImplementedException();
+        try
+        {
+            // 1️⃣ Include listesi: StoneType ve Color her zaman include et
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query=>query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            // Kategoriler sadece istenirse include et
+            if (includeCategories)
+            {
+                includeList.Add(query => query.Include(x => x.ProductCategories).ThenInclude(y => y.Category));
+            }
+            // 2️⃣ Repository çağrısı: Slug'a göre ürünü getir
+            var product = await _productRepository.GetAsync(
+                predicate: x => x.Slug == slug && !x.IsDeleted,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+            if (product is null)
+            {
+                return ResponseDto<ProductDto>.Fail("Ürün bulunamadı!", StatusCodes.Status404NotFound);
+            }
+
+            var productDto = _mapper.Map<ProductDto>(product);
+            return ResponseDto<ProductDto>.Success(productDto, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<ProductDto>.Fail($"Beklenmedik Hata : {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetFeaturedAsync(int? top = null)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetFeaturedAsync(int? top = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && x.IsFeatured;
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query=>query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+            var products = await _productRepository.GetAllAsync(
+                 predicate: predicate,
+                 top: top,
+                 orderby: orderByFunc,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Öne çıkan ürünler getirilirken hata oluştu: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetHomePageAsync(int? top = null)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetHomePageAsync(int? top = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && x.IsHome;
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query=>query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+            var products = await _productRepository.GetAllAsync(
+                 predicate: predicate,
+                 top: top,
+                 orderby: orderByFunc,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Ana sayfa ürünleri getirilirken hata oluştu: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetNewArrivalsAsync(int? top = null)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetNewArrivalsAsync(int? top = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && x.IsNewArrival;
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query=>query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+            var products = await _productRepository.GetAllAsync(
+                 predicate: predicate,
+                 top: top,
+                 orderby: orderByFunc,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Yeni eklenen ürünler getirilirken hata oluştu: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetOnSaleAsync(int? top = null)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetOnSaleAsync(int? top = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && x.DiscountedPrice != null;
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query=>query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+            var products = await _productRepository.GetAllAsync(
+                 predicate: predicate,
+                 top: top,
+                 orderby: orderByFunc,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"İndirimdeki ürünler getirilirken hata oluştu: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> GetSimilarAsync(int productId, int? top = null)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> GetSimilarAsync(int productId, int? top = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+                predicate: x => x.Id == productId && !x.IsDeleted,
+                includeDeleted: false,
+                includes: query => query
+                     .Include(x => x.ProductCategories)
+                     .Include(x => x.StoneType)
+                     .Include(x => x.Color)
+            );
+            if (product is null)
+            {
+                return ResponseDto<IEnumerable<ProductDto>>.Fail("Ürün bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var categoryIds = product.ProductCategories.Select(pc => pc.CategoryId).ToList();
+            Expression<Func<Product, bool>> predicate;
+            if (categoryIds.Any())
+            {
+                var categoryIdsArray = categoryIds.ToArray();
+                var stoneTypeIdValue = product.StoneTypeId;
+                var colorIdValue = product.ColorId;
+
+                predicate = x => !x.IsDeleted && x.Id != productId &&
+                (
+                   x.ProductCategories.Any(pc => categoryIdsArray.Contains(pc.CategoryId)) || (stoneTypeIdValue.HasValue && x.StoneTypeId == stoneTypeIdValue) || (colorIdValue.HasValue && x.ColorId == colorIdValue)
+                   );
+            }
+            else
+            {
+                var stoneTypeIdValue = product.StoneTypeId;
+                var colorIdValue = product.ColorId;
+
+                predicate = x => !x.IsDeleted && x.Id != productId &&
+                (
+                    (stoneTypeIdValue.HasValue && x.StoneTypeId == stoneTypeIdValue) ||
+                    (colorIdValue.HasValue && x.ColorId == colorIdValue)
+                );
+            }
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query=>query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+            var similarProducts = await _productRepository.GetAllAsync(
+                predicate: predicate,
+                top: top,
+                orderby: orderByFunc,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(similarProducts);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Benzer ürünler getirilirken hata oluştu: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<ProductWithVariantsDto>> GetWithVariantsByIdAsync(int id)
+    public async Task<ResponseDto<ProductWithVariantsDto>> GetWithVariantsByIdAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query => query.Include(x=>x.ProductVariants),
+                query=> query.Include(x=>x.ProductImages),
+                query=> query.Include(x=>x.ProductCategories).ThenInclude(pc=>pc.Category),
+                query => query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            var product = await _productRepository.GetAsync(
+                predicate: x => x.Id == id && !x.IsDeleted,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+            if (product is null)
+            {
+                return ResponseDto<ProductWithVariantsDto>.Fail("Ürün bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var productDtos = _mapper.Map<ProductWithVariantsDto>(product);
+            return ResponseDto<ProductWithVariantsDto>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<ProductWithVariantsDto>.Fail($"Ürün detayları getirilirken hata oluştu : {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+                predicate: x => x.Id == id,
+                includeDeleted: true,
+                includes: query => query
+                  .Include(x => x.ProductImages)
+                  .Include(x => x.ProductVariants)
+            );
+
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail("Ürün bulunamadığı için silme işlemi gerçekleştirilemedi!!", StatusCodes.Status404NotFound);
+            }
+            if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+            {
+                _imageManager.DeleteImage(product.ImageUrl);
+            }
+            if (product.ProductImages?.Any() == true)
+            {
+                foreach (var productImage in product.ProductImages!)
+                {
+                    if (!string.IsNullOrWhiteSpace(productImage.ImageUrl))
+                    {
+                        _imageManager.DeleteImage(productImage.ImageUrl);
+                    }
+                }
+            }
+            _productRepository.Delete(product);
+            var result = await _unitOfWork.SaveAsync();
+
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Ürün silinirken beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<ProductDto>>> SearchAsync(string searchTerm)
+    public async Task<ResponseDto<IEnumerable<ProductDto>>> SearchAsync(string searchTerm)
     {
-        throw new NotImplementedException();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return ResponseDto<IEnumerable<ProductDto>>.Fail("Arama terimi boş olamaz!", StatusCodes.Status400BadRequest);
+            }
+            var searchTermLower = searchTerm.Trim().ToLowerInvariant();
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && (x.Name != null && x.Name.ToLower().Contains(searchTermLower) || x.Description != null && x.Description.ToLower().Contains(searchTermLower));
+            var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
+            {
+                query=>query.Include(x=>x.StoneType),
+                query => query.Include(x=>x.Color)
+            };
+            Func<IQueryable<Product>, IOrderedQueryable<Product>> orderByFunc = query => query.OrderByDescending(x => x.CreatedAt);
+            var products = await _productRepository.GetAllAsync(
+                 predicate: predicate,
+                 orderby: orderByFunc,
+                includeDeleted: false,
+                includes: includeList.ToArray()
+            );
+            var productDtos = _mapper.Map<IEnumerable<ProductDto>>(products);
+            return ResponseDto<IEnumerable<ProductDto>>.Success(productDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ProductDto>>.Fail($"Arama yapılırken hata oluştu: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+              predicate: x => x.Id == id && !x.IsDeleted,
+              includeDeleted: false
+            );
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail("Ürün bulunamadığı için silme işlemi gerçekleştirilemedi!!", StatusCodes.Status404NotFound);
+            }
+            product.IsDeleted = true;
+            product.DeletedAt = DateTimeOffset.UtcNow;
+            _productRepository.Update(product);
+
+            var result = await _unitOfWork.SaveAsync();
+
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Ürün silinirken beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> SoftDeleteByCategoryIdAsync(int categoryId)
+    public async Task<ResponseDto<NoContentDto>> SoftDeleteByCategoryIdAsync(int categoryId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var category = await _categoryRepository.GetAsync(
+                predicate: x => x.Id == categoryId && !x.IsDeleted,
+                includeDeleted: false
+            );
+            if (category is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{categoryId} id'li kategori bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var products = await _productRepository.GetAllAsync(
+               predicate: x => !x.IsDeleted && x.ProductCategories.Any(y => y.CategoryId == categoryId),
+               includeDeleted: false
+           );
+            if (!products.Any())
+            {
+                return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+            }
+            foreach (var product in products)
+            {
+                product.IsDeleted = true;
+                product.DeletedAt = DateTimeOffset.UtcNow;
+            }
+            _productRepository.BulkUpdate(products);
+            var result = await _unitOfWork.SaveAsync();
+
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Ürün silinirken beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
     public Task<ResponseDto<NoContentDto>> UpdateAsync(ProductUpdateDto productUpdateDto)

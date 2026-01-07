@@ -7,7 +7,6 @@ public class Category : BaseEntity, IEntity
 {
     private Category()
     {
-
     }
     public Category(string name, string? description, string? imageUrl, string slug)
     {
