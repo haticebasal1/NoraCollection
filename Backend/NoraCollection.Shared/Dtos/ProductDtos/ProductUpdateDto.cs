@@ -6,6 +6,8 @@ namespace NoraCollection.Shared.Dtos.ProductDtos;
 
 public class ProductUpdateDto
 {
+    [Required(ErrorMessage = "Id bilgisi zorunludur!")]
+    public int Id { get; set; }  
     [Required(ErrorMessage = "Ürün adı zorunludur!")]
     public string? Name { get; set; }
     [Required(ErrorMessage = "Ürün özellikleri zorunludur!")]

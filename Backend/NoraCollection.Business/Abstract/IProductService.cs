@@ -48,7 +48,7 @@ public interface IProductService
   Task<ResponseDto<NoContentDto>> UpdateAsync(ProductUpdateDto productUpdateDto);
   Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id);
   Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id);
-//Ürünün ana sayfa durumunu günceller (IsHome toggle).
+  //Ürünün ana sayfa durumunu günceller (IsHome toggle).
   Task<ResponseDto<NoContentDto>> UpdateIsHomeAsync(int id);
   //Ürünün en çok satan durumunu günceller (IsBestSeller toggle).
   Task<ResponseDto<NoContentDto>> UpdateIsBestSellerAsync(int id);

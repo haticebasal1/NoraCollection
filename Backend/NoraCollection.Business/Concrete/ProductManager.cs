@@ -778,9 +778,93 @@ public class ProductManager : IProductService
         }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateAsync(ProductUpdateDto productUpdateDto)
+    public async Task<ResponseDto<NoContentDto>> UpdateAsync(ProductUpdateDto productUpdateDto)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+                predicate: x => x.Id == productUpdateDto.Id && !x.IsDeleted,
+                includeDeleted: false,
+                includes: query => query.Include(x => x.ProductCategories)
+            );
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{productUpdateDto.Id} id'li ürün bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            if (productUpdateDto.CategoryIds == null || !productUpdateDto.CategoryIds.Any())
+            {
+                return ResponseDto<NoContentDto>.Fail("En az bir kategori seçilmelidir!", StatusCodes.Status400BadRequest);
+            }
+            var validCategories = await _categoryRepository.GetAllAsync(
+                predicate: x => productUpdateDto.CategoryIds.Contains(x.Id) && !x.IsDeleted,
+                includeDeleted: false
+            );
+            // Distinct() → Aynı kategori ID'si birden fazla gönderilmişse tek say
+            if (validCategories.Count() != productUpdateDto.CategoryIds.Distinct().Count())
+            {
+                return ResponseDto<NoContentDto>.Fail("Seçilen kategorilerden bazıları geçersiz veya silinmiş!", StatusCodes.Status400BadRequest);
+            }
+            // Resim Yönetimi Ön Hazırlık
+            // Eski resim URL'sini sakla (başarılı güncellemeden sonra silmek için)
+            var oldImageUrl = product.ImageUrl;
+            string? newImageUrl = null;
+            // Yeni resim yüklendiyse
+            if (productUpdateDto.Image is not null)
+            {
+                // Resmi yükle
+                var imageUploadResult = await _imageManager.UploadAsync(
+                    productUpdateDto.Image, "products"
+                );
+                if (!imageUploadResult.IsSuccessful)
+                {
+                    // Hata durumunda direkt dön (henüz veritabanı değişikliği yok)
+                    return ResponseDto<NoContentDto>.Fail(imageUploadResult.Errors, imageUploadResult.StatusCode);
+                }
+                // Başarılı ise yeni URL'yi sakla
+                newImageUrl = imageUploadResult.Data;
+            }
+            //SEO: İsim değiştiyse Slug'ı da güncelle
+            if (product.Name != productUpdateDto.Name)
+            {
+                product.Slug = GenerateSlug(productUpdateDto.Name!);
+            }
+            _mapper.Map(productUpdateDto, product);
+            // Yeni resim yüklendiyse, ImageUrl'i güncelle
+            if (newImageUrl is not null)
+            {
+                product.ImageUrl = newImageUrl;
+            }
+            // Önce mevcut kategorileri temizle
+            product.ProductCategories.Clear();
+            // Yeni kategorileri ekle
+            foreach (var categoryId in productUpdateDto.CategoryIds.Distinct())
+            {
+                product.ProductCategories.Add(
+                    new ProductCategory(product.Id, categoryId)
+                );
+            }
+            product.UpdatedAt = DateTimeOffset.UtcNow;
+            _productRepository.Update(product);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                if (newImageUrl is not null)
+                {
+                    _imageManager.DeleteImage(newImageUrl);
+                }
+                return ResponseDto<NoContentDto>.Fail("Beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            if (newImageUrl is not null && !string.IsNullOrWhiteSpace(oldImageUrl))
+            {
+                _imageManager.DeleteImage(oldImageUrl);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
     public Task<ResponseDto<NoContentDto>> UpdateDiscountedPriceAsync(int id, decimal? discountedPrice)
