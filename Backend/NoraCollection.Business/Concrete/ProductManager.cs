@@ -47,7 +47,7 @@ public class ProductManager : IProductService
         try
         {
             // 1. Fiyat ve Kategori Ön Kontrolleri
-            if (productCreateDto.Price <= 0)
+            if (!productCreateDto.Price.HasValue || productCreateDto.Price.Value <= 0)
             {
                 return ResponseDto<ProductDto>.Fail("Ürün fiyatı 0'dan büyük olmalıdır!", StatusCodes.Status400BadRequest);
             }
@@ -282,7 +282,7 @@ public class ProductManager : IProductService
             }
 
             var product = await _productRepository.GetAsync(
-                predicate: x => x.Id == id,
+                predicate: x => x.Id == id && !x.IsDeleted,
                 includeDeleted: false,
                 includes: includeList.ToArray()
             );
@@ -684,7 +684,9 @@ public class ProductManager : IProductService
                 return ResponseDto<IEnumerable<ProductDto>>.Fail("Arama terimi boş olamaz!", StatusCodes.Status400BadRequest);
             }
             var searchTermLower = searchTerm.Trim().ToLowerInvariant();
-            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && (x.Name != null && x.Name.ToLower().Contains(searchTermLower) || x.Description != null && x.Description.ToLower().Contains(searchTermLower));
+            Expression<Func<Product, bool>> predicate = x => !x.IsDeleted && (
+                (x.Name != null && x.Name.ToLower().Contains(searchTermLower)) ||
+                (x.Description != null && x.Description.ToLower().Contains(searchTermLower)));
             var includeList = new List<Func<IQueryable<Product>, IQueryable<Product>>>
             {
                 query=>query.Include(x=>x.StoneType),
@@ -812,7 +814,7 @@ public class ProductManager : IProductService
             if (productUpdateDto.Image is not null)
             {
                 // Resmi yükle
-                var imageUploadResult = await _imageManager.UploadAsync(
+                var imageUploadResult = await _imageManager.ResizeAndUploadAsync(
                     productUpdateDto.Image, "products"
                 );
                 if (!imageUploadResult.IsSuccessful)
@@ -826,13 +828,27 @@ public class ProductManager : IProductService
             //SEO: İsim değiştiyse Slug'ı da güncelle
             if (product.Name != productUpdateDto.Name)
             {
-                product.Slug = GenerateSlug(productUpdateDto.Name!);
+                var slug = GenerateSlug(productUpdateDto.Name!);
+                var originalSlug = slug;
+                var counter = 1;
+                // Mevcut ürünün ID'sini hariç tutarak slug benzersizliğini kontrol et
+                while (await _productRepository.ExistsAsync(x => x.Slug == slug && x.Id != product.Id))
+                {
+                    slug = $"{originalSlug}-{counter}";
+                    counter++;
+                }
+                product.Slug = slug;
             }
+            // Mapping'den ÖNCE ImageUrl'i sakla
+            var currentImageUrl = product.ImageUrl;
             _mapper.Map(productUpdateDto, product);
-            // Yeni resim yüklendiyse, ImageUrl'i güncelle
+            // ImageUrl'i tekrar set et (güvenlik için)
+            product.ImageUrl = currentImageUrl;
+            // Yeni resim yüklendiyse güncelle
             if (newImageUrl is not null)
             {
-                product.ImageUrl = newImageUrl;
+                var baseUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}";
+                product.ImageUrl = $"{baseUrl}/{newImageUrl.TrimStart('/')}";
             }
             // Önce mevcut kategorileri temizle
             product.ProductCategories.Clear();
@@ -867,34 +883,231 @@ public class ProductManager : IProductService
         }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateDiscountedPriceAsync(int id, decimal? discountedPrice)
+    public async Task<ResponseDto<NoContentDto>> UpdateDiscountedPriceAsync(int id, decimal? discountedPrice)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+               predicate: x => x.Id == id && !x.IsDeleted,
+               includeDeleted: false
+            );
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"Ürün bulunamadığı için işlem gerçekleştirilemedi!", StatusCodes.Status404NotFound);
+            }
+            if (discountedPrice.HasValue)
+            {
+                if (discountedPrice.Value < 0)
+                {
+                    return ResponseDto<NoContentDto>.Fail("İndirimli fiyat negatif olamaz!", StatusCodes.Status400BadRequest);
+                }
+                // İndirimli fiyat, normal fiyattan büyük veya eşit olamaz
+                if (discountedPrice.Value >= product.Price)
+                {
+                    return ResponseDto<NoContentDto>.Fail($"İndirimli fiyat({discountedPrice.Value:C}), normal fiyattan ({product.Price:C}) büyük veya eşit olamaz!", StatusCodes.Status400BadRequest);
+                }
+            }
+            product.DiscountedPrice = discountedPrice;
+            product.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _productRepository.Update(product);
+            var result = await _unitOfWork.SaveAsync();
+
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Güncelleme sırasında beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateIsBestSellerAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> UpdateIsBestSellerAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+               predicate: x => x.Id == id && !x.IsDeleted,
+               includeDeleted: false
+               );
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"Ürün bulunamadığı için işlem gerçekleştirilemedi!", StatusCodes.Status404NotFound);
+            }
+            if (!product.IsBestSeller)
+            {
+                var bestSellerCount = await _productRepository.CountAsync(
+                    predicate: x => x.IsBestSeller && !x.IsDeleted,
+                    includeDeleted: false
+                );
+                if (bestSellerCount >= 10)
+                {
+                    return ResponseDto<NoContentDto>.Fail("En çok satanlar bölümünde en fazla 10 ürün gösterilebilir! Lütfen önce başka bir ürünün işaretini kaldırın!", StatusCodes.Status400BadRequest);
+                }
+            }
+            product.IsBestSeller = !product.IsBestSeller;
+            product.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _productRepository.Update(product);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Güncelleme sırasında beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateIsFeaturedAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> UpdateIsFeaturedAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+             predicate: x => x.Id == id && !x.IsDeleted,
+             includeDeleted: false
+            );
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"Ürün bulunamadığı için işlem gerçekleştirilemedi!", StatusCodes.Status404NotFound);
+            }
+            if (!product.IsFeatured)
+            {
+                var featuredCount = await _productRepository.CountAsync(
+                    predicate: x => x.IsFeatured && !x.IsDeleted,
+                    includeDeleted: false
+                );
+                if (featuredCount >= 10)
+                {
+                    return ResponseDto<NoContentDto>.Fail("Öne çıkanlar bölümünde en fazla 10 ürün gösterilebilir! Lütfen önce başka bir ürünün işaretini kaldırın!", StatusCodes.Status400BadRequest);
+                }
+            }
+            product.IsFeatured = !product.IsFeatured;
+            product.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _productRepository.Update(product);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Güncelleme sırasında beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateIsHomeAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> UpdateIsHomeAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+                predicate: x => x.Id == id && !x.IsDeleted,
+                includeDeleted: false
+            );
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"Ürün bulunamadığı için işlem gerçekleştirilemedi!", StatusCodes.Status404NotFound);
+            }
+            if (!product.IsHome)
+            {
+                // Mevcutta kaç ürün ana sayfada işaretli?
+                var homeProductCount = await _productRepository.CountAsync(
+                    predicate: x => x.IsHome && !x.IsDeleted,
+                    includeDeleted: false
+                );
+                // Limit aşımı kontrolü (Max 10 ürün)
+                if (homeProductCount >= 10)
+                {
+                    return ResponseDto<NoContentDto>.Fail("Ana sayfada en fazla 10 ürün gösterilebilir! Lütfen önce başka bir ürünün işaretini kaldırın", StatusCodes.Status400BadRequest);
+                }
+            }
+            product.IsHome = !product.IsHome;
+            product.UpdatedAt = DateTimeOffset.UtcNow;
+            _productRepository.Update(product);
+            var result = await _unitOfWork.SaveAsync();
+
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Güncelleme sırasında beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateIsNewArrivalAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> UpdateIsNewArrivalAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+             predicate: x => x.Id == id && !x.IsDeleted,
+             includeDeleted: false
+            );
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"Ürün bulunamadığı için işlem gerçekleştirilemedi!", StatusCodes.Status404NotFound);
+            }
+            product.IsNewArrival = !product.IsNewArrival;
+            product.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _productRepository.Update(product);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Güncelleme sırasında beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateStockAsync(int id, int stock)
+    public async Task<ResponseDto<NoContentDto>> UpdateStockAsync(int id, int stock)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var product = await _productRepository.GetAsync(
+             predicate: x => x.Id == id && !x.IsDeleted,
+             includeDeleted: false
+            );
+            if (product is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"Ürün bulunamadığı için işlem gerçekleştirilemedi!", StatusCodes.Status404NotFound);
+            }
+            if (stock < 0)
+            {
+                return ResponseDto<NoContentDto>.Fail("Stok miktarı negatif olamaz!", StatusCodes.Status400BadRequest);
+            }
+            product.Stock = stock;
+            product.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _productRepository.Update(product);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Güncelleme sırasında beklenmedik bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
     private string GenerateSlug(string name)
     {

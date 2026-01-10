@@ -26,3 +26,5 @@ public class StoneType : BaseEntity, IEntity
 
 
 
+
+

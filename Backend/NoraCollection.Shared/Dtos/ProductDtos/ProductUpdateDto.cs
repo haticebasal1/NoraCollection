@@ -15,8 +15,7 @@ public class ProductUpdateDto
     [Required(ErrorMessage = "Ürün fiyatı zorunludur!")]
     [Range(0.1, double.MaxValue, ErrorMessage ="Fiyatı 0'dan büyük olmalıdır!")]
     public decimal? Price { get; set; }
-    [Required(ErrorMessage = "Ürün görseli zorunludur!")]
-    public IFormFile Image { get; set; } = null!;
+    public IFormFile? Image { get; set; }
     public bool IsHome { get; set; }
     [Required(ErrorMessage = "Stok miktarı zorunludur!")]
     [Range(0,int.MaxValue,ErrorMessage ="Stok negatif olamaz!")]
