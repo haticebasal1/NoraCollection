@@ -26,6 +26,7 @@ builder.Services.AddScoped<ICategoryService, CategoryManager>();
 builder.Services.AddScoped<IImageService, ImageManager>();
 builder.Services.AddScoped<IProductImageService, ProductImageManager>();
 builder.Services.AddScoped<IProductVariantService, ProductVariantManager>();
+builder.Services.AddScoped<IProductService, ProductManager>();
 
 var app = builder.Build();
 
