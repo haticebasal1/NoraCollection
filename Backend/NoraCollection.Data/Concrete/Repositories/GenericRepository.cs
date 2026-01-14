@@ -99,7 +99,7 @@ where TEntity : class, IEntity
         {
             query = includes.Aggregate(query,(current,include)=> include(current));
         }
-        return await query.FirstOrDefaultAsync()!;
+        return await query.FirstOrDefaultAsync();
     }
 
     public void Update(TEntity entity)
