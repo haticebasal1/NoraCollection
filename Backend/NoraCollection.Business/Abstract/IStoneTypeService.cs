@@ -17,3 +17,5 @@ public interface IStoneTypeService
   // ✅ Taş tipinin aktif/pasif durumunu toggle eder (IsActive)
   Task<ResponseDto<NoContentDto>> ToggleIsActiveAsync(int id);
 }
+
+
