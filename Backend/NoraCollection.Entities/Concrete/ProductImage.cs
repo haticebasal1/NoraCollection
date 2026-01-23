@@ -20,6 +20,9 @@ public class ProductImage : BaseEntity, IEntity
     // İlişkiler
     public int ProductId { get; set; }                  // Hangi ürüne ait (Foreign Key)
     public Product Product { get; set; } = null!;       // Navigation property
+                                                        // ProductVariant.cs
+    public int? ColorId { get; set; }
+    public Color? Color { get; set; }
 }
 
 

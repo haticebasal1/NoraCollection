@@ -14,6 +14,7 @@ public class ProductImageManager : IProductImageService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGenericRepository<ProductImage> _productImageRepository;
     private readonly IGenericRepository<Product> _productRepository;
+    private readonly IGenericRepository<Color> _colorRepository;
     private readonly IMapper _mapper;
     private readonly IImageService _imageService;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -23,6 +24,7 @@ public class ProductImageManager : IProductImageService
         _unitOfWork = unitOfWork;
         _productImageRepository = _unitOfWork.GetRepository<ProductImage>();
         _productRepository = _unitOfWork.GetRepository<Product>();
+        _colorRepository = _unitOfWork.GetRepository<Color>();
         _mapper = mapper;
         _imageService = imageService;
         _httpContextAccessor = httpContextAccessor;
@@ -44,6 +46,19 @@ public class ProductImageManager : IProductImageService
             {
                 return ResponseDto<ProductImageDto>.Fail("Resim dosyası zorunludur!", StatusCodes.Status400BadRequest);
             }
+            
+            // ✅ ColorId kontrolü (eğer ColorId varsa, Color'ın var olup olmadığını kontrol et)
+            if (productImageCreateDto.ColorId.HasValue)
+            {
+                var colorExists = await _colorRepository.ExistsAsync(
+                    x => x.Id == productImageCreateDto.ColorId.Value && !x.IsDeleted && x.IsActive
+                );
+                if (!colorExists)
+                {
+                    return ResponseDto<ProductImageDto>.Fail("Seçilen renk bulunamadı veya aktif değil!", StatusCodes.Status404NotFound);
+                }
+            }
+            
             // 2. Resim Yükleme İşlemi
             var imageResult = await _imageService.ResizeAndUploadAsync(productImageCreateDto.Image, "products");
             if (!imageResult.IsSuccessful)
@@ -256,6 +271,19 @@ public class ProductImageManager : IProductImageService
             {
                 return ResponseDto<NoContentDto>.Fail("Görsel bulunamadı!",StatusCodes.Status404NotFound);
             }
+            
+            // ✅ ColorId kontrolü (eğer ColorId varsa, Color'ın var olup olmadığını kontrol et)
+            if (productImageUpdateDto.ColorId.HasValue)
+            {
+                var colorExists = await _colorRepository.ExistsAsync(
+                    x => x.Id == productImageUpdateDto.ColorId.Value && !x.IsDeleted && x.IsActive
+                );
+                if (!colorExists)
+                {
+                    return ResponseDto<NoContentDto>.Fail("Seçilen renk bulunamadı veya aktif değil!", StatusCodes.Status404NotFound);
+                }
+            }
+            
             var oldImageUrl = image.ImageUrl;
             string? newImageUrl = null;
             // Resim dosyası güncelleniyorsa

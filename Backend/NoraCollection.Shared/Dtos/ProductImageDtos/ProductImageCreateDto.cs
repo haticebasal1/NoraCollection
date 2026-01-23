@@ -5,6 +5,7 @@ namespace NoraCollection.Shared.Dtos.ProductImageDtos;
 public class ProductImageCreateDto
 {
     public int ProductId { get; set; }
+    public int? ColorId { get; set; }  // ✅ Renk seçimi (opsiyonel)
     public IFormFile Image { get; set; } = null!;
     public string? AltText { get; set; }
     public int DisplayOrder { get; set; } = 0;

@@ -14,13 +14,15 @@ public class ProductVariantManager : IProductVariantService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGenericRepository<ProductVariant> _productVariantRepository;
     private readonly IGenericRepository<Product> _productRepository;
+    private readonly IGenericRepository<Color> _colorRepository;
     private readonly IMapper _mapper;
 
-    public ProductVariantManager(IUnitOfWork unitOfWork, IGenericRepository<ProductVariant> productVariantRepository, IGenericRepository<Product> productRepository, IMapper mapper)
+    public ProductVariantManager(IUnitOfWork unitOfWork, IGenericRepository<ProductVariant> productVariantRepository, IGenericRepository<Product> productRepository, IGenericRepository<Color> colorRepository, IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _productVariantRepository = _unitOfWork.GetRepository<ProductVariant>();
         _productRepository = _unitOfWork.GetRepository<Product>();
+        _colorRepository = _unitOfWork.GetRepository<Color>();
         _mapper = mapper;
     }
     public async Task<ResponseDto<ProductVariantDto>> AddAsync(ProductVariantCreateDto productVariantCreateDto)
@@ -42,12 +44,32 @@ public class ProductVariantManager : IProductVariantService
             {
                 return ResponseDto<ProductVariantDto>.Fail("Stok miktarı negatif olamaz!", StatusCodes.Status400BadRequest);
             }
+            
+            // ✅ ColorId kontrolü (eğer ColorId varsa, Color'ın var olup olmadığını kontrol et)
+            if (productVariantCreateDto.ColorId.HasValue)
+            {
+                var colorExists = await _colorRepository.ExistsAsync(
+                    x => x.Id == productVariantCreateDto.ColorId.Value && !x.IsDeleted && x.IsActive
+                );
+                if (!colorExists)
+                {
+                    return ResponseDto<ProductVariantDto>.Fail("Seçilen renk bulunamadı veya aktif değil!", StatusCodes.Status404NotFound);
+                }
+            }
+            
+            // ✅ Duplicate kontrolü: Aynı ProductId + Size + ColorId kombinasyonu kontrolü
             var existingVariant = await _productVariantRepository.GetAsync(
-                x => x.ProductId == productVariantCreateDto.ProductId && x.Size == productVariantCreateDto.Size && !x.IsDeleted
+                x => x.ProductId == productVariantCreateDto.ProductId 
+                    && x.Size == productVariantCreateDto.Size 
+                    && x.ColorId == productVariantCreateDto.ColorId 
+                    && !x.IsDeleted
             );
             if (existingVariant is not null)
             {
-                return ResponseDto<ProductVariantDto>.Fail($"{productVariantCreateDto.Size} bedeninde varyant zaten mevcut!", StatusCodes.Status400BadRequest);
+                var colorInfo = productVariantCreateDto.ColorId.HasValue 
+                    ? $" ve seçilen renkte" 
+                    : "";
+                return ResponseDto<ProductVariantDto>.Fail($"{productVariantCreateDto.Size} bedeninde{colorInfo} varyant zaten mevcut!", StatusCodes.Status400BadRequest);
             }
             var variantsMapper = _mapper.Map<ProductVariant>(productVariantCreateDto);
             await _productVariantRepository.AddAsync(variantsMapper);
@@ -224,14 +246,34 @@ public class ProductVariantManager : IProductVariantService
             {
                 return ResponseDto<NoContentDto>.Fail("Varyant bulunamadı!", StatusCodes.Status404NotFound);
             }
-            if (variant.Size != productVariantUpdateDto.Size)
+            // ✅ ColorId kontrolü (eğer ColorId varsa, Color'ın var olup olmadığını kontrol et)
+            if (productVariantUpdateDto.ColorId.HasValue)
+            {
+                var colorExists = await _colorRepository.ExistsAsync(
+                    x => x.Id == productVariantUpdateDto.ColorId.Value && !x.IsDeleted && x.IsActive
+                );
+                if (!colorExists)
+                {
+                    return ResponseDto<NoContentDto>.Fail("Seçilen renk bulunamadı veya aktif değil!", StatusCodes.Status404NotFound);
+                }
+            }
+            
+            // ✅ Duplicate kontrolü: Size veya ColorId değiştiyse, aynı kombinasyonun olup olmadığını kontrol et
+            if (variant.Size != productVariantUpdateDto.Size || variant.ColorId != productVariantUpdateDto.ColorId)
             {
                 var existingVariant = await _productVariantRepository.GetAsync(
-                    x => x.ProductId == variant.ProductId && x.Size == productVariantUpdateDto.Size && x.Id != productVariantUpdateDto.Id && !x.IsDeleted
+                    x => x.ProductId == variant.ProductId 
+                        && x.Size == productVariantUpdateDto.Size 
+                        && x.ColorId == productVariantUpdateDto.ColorId 
+                        && x.Id != productVariantUpdateDto.Id 
+                        && !x.IsDeleted
                 );
                 if (existingVariant is not null)
                 {
-                    return ResponseDto<NoContentDto>.Fail($"Bu ürün için '{productVariantUpdateDto.Size}' bedeninde zaten başka bir varyant mevcut!", StatusCodes.Status400BadRequest);
+                    var colorInfo = productVariantUpdateDto.ColorId.HasValue 
+                        ? $" ve seçilen renkte" 
+                        : "";
+                    return ResponseDto<NoContentDto>.Fail($"Bu ürün için '{productVariantUpdateDto.Size}' bedeninde{colorInfo} zaten başka bir varyant mevcut!", StatusCodes.Status400BadRequest);
                 }
             }
             if (string.IsNullOrWhiteSpace(productVariantUpdateDto.Size))
