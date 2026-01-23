@@ -141,7 +141,9 @@ public class CategoryManager : ICategoryService
     {
         try
         {
-            var category = await _categoryRepository.GetAsync(x => x.Id == id);
+            var category = await _categoryRepository.GetAsync(
+                predicate:x => x.Id == id&& !x.IsDeleted,
+                includeDeleted:false);
             if (category is null)
             {
                 return ResponseDto<CategoryDto>.Fail($"{id} id'li kategori bulunamadı!", StatusCodes.Status404NotFound);
@@ -178,7 +180,7 @@ public class CategoryManager : ICategoryService
         try
         {
             var category = await _categoryRepository.GetAsync(
-                predicate: x => x.Id == id,
+                predicate: x => x.Id == id, 
                 includeDeleted: true
             );
             if (category is null)
