@@ -33,46 +33,134 @@ public class ColorManager : IColorService
     {
         try
         {
+            // 1. İsim ve HexCode için normalizasyon (Karşılaştırma garantisi için)
+            var normalizadeName = colorCreateDto.Name.Trim().ToLower();
+            // Mapping'deki mantığın aynısını kontrol için burada da uyguluyoruz
+            var normalizadeHex = colorCreateDto.HexCode.Trim().ToUpper().StartsWith("#")
+            ? colorCreateDto.HexCode.Trim().ToUpper()
+            : $"{colorCreateDto.HexCode.Trim().ToUpper()}";
             var isExists = await _colorRepository.ExistsAsync(
-                x=>x.Name.ToLower() == colorCreateDto.Name && !x.IsDeleted
+               x => !x.IsDeleted &&
+                 (x.Name.ToLower() == normalizadeName || x.HexCode == normalizadeHex)
             );
             if (isExists)
             {
-                return ResponseDto<ColorDto>.Fail("Bu renk isminden bir renk ismi mevcut!",StatusCodes.Status400BadRequest);
+                return ResponseDto<ColorDto>.Fail("Bu renk isminden bir renk ismi mevcut!", StatusCodes.Status400BadRequest);
             }
             if (string.IsNullOrWhiteSpace(colorCreateDto.HexCode))
             {
-                return ResponseDto<ColorDto>.Fail("Hex kod zorunludur!",StatusCodes.Status400BadRequest);
+                return ResponseDto<ColorDto>.Fail("Hex kod zorunludur!", StatusCodes.Status400BadRequest);
             }
             var color = _mapper.Map<Color>(colorCreateDto);
             await _colorRepository.AddAsync(color);
             var result = await _unitOfWork.SaveAsync();
-            if (result<1)
+            if (result < 1)
             {
-                return ResponseDto<ColorDto>.Fail("Renk kaydedilirken bir hata oluştu!",StatusCodes.Status500InternalServerError);
+                return ResponseDto<ColorDto>.Fail("Renk kaydedilirken bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            var colorDto = _mapper.Map<ColorDto>(color);
+            return ResponseDto<ColorDto>.Success(colorDto, StatusCodes.Status201Created);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<ColorDto>.Fail($"Renk eklenirken bir hata oluştu!:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    public async Task<ResponseDto<int>> CountAsync(bool? isDeleted = false, bool? isActive = null)
+    {
+        try
+        {
+            Expression<Func<Color, bool>> predicate = x => true;
+            bool includeDeleted = false;
+            if (isDeleted.HasValue)
+            {
+                var deletedValue = isDeleted.Value;
+                includeDeleted = deletedValue;
+                predicate = CombinePredicates(predicate, x => x.IsDeleted == deletedValue);
+            }
+            else
+            {
+                includeDeleted = true;
+            }
+            if (isActive.HasValue)
+            {
+                var activeValue = isActive.Value;
+                predicate = CombinePredicates(predicate, x => isActive == activeValue);
+            }
+            var count = await _colorRepository.CountAsync(
+                predicate: predicate,
+                includeDeleted: includeDeleted
+            );
+            return ResponseDto<int>.Success(count, StatusCodes.Status200OK);
+
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<int>.Fail($"Renk sayısı hesaplanırken bir hata oluştu!:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    public async Task<ResponseDto<IEnumerable<ColorDto>>> GetAllAsync(bool? isDeleted = false, bool? isActive = null)
+    {
+        try
+        {
+            Expression<Func<Color, bool>> predicate;
+            bool includeDeleted;
+            if (isDeleted == null)
+            {
+                includeDeleted = true;
+                predicate = x => true;
+            }
+            else if (isDeleted == true)
+            {
+                includeDeleted = true;
+                predicate = x => x.IsDeleted;
+            }
+            else
+            {
+                includeDeleted = false;
+                predicate = x => !x.IsDeleted;
+            }
+            if (isActive.HasValue)
+            {
+                var activeValue = isActive.Value;
+                predicate = CombinePredicates(predicate, x => x.IsActive == activeValue);
+            }
+            Func<IQueryable<Color>,IOrderedQueryable<Color>> orderByFunc = query =>query.OrderBy(x=>x.DisplayOrder).ThenBy(x=>x.Name);
+            var colors = await _colorRepository.GetAllAsync(
+                predicate:predicate,
+                orderby:orderByFunc,
+                includeDeleted:includeDeleted
+            );
+            var colorDtos = _mapper.Map<IEnumerable<ColorDto>>(colors);
+            return ResponseDto<IEnumerable<ColorDto>>.Success(colorDtos,StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<ColorDto>>.Fail($"Renk getirilirken bir hata oluştu!:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    public async Task<ResponseDto<ColorDto>> GetAsync(int id)
+    {
+        try
+        {
+            var color = await _colorRepository.GetAsync(
+                x=>x.Id == id && !x.IsDeleted,
+                includeDeleted:false
+            );
+            if (color is null)
+            {
+                return ResponseDto<ColorDto>.Fail($"{id} id'li renk bulunamadı!",StatusCodes.Status404NotFound);
             }
             var colorDto = _mapper.Map<ColorDto>(color);
             return ResponseDto<ColorDto>.Success(colorDto,StatusCodes.Status200OK);
         }
         catch (Exception ex)
         {
-            return ResponseDto<ColorDto>.Fail($"Renk eklenirken bir hata oluştu!:{ex.Message}",StatusCodes.Status500InternalServerError);
+            return ResponseDto<ColorDto>.Fail($"Renk getirilirken bir hata oluştu!:{ex.Message}", StatusCodes.Status500InternalServerError);
         }
-    }
-
-    public Task<ResponseDto<int>> CountAsync(bool? isDeleted = false, bool? isActive = null)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<ResponseDto<IEnumerable<ColorDto>>> GetAllAsync(bool? isDeleted = false, bool? isActive = null)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<ResponseDto<ColorDto>> GetAsync(int id)
-    {
-        throw new NotImplementedException();
     }
 
     public Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
