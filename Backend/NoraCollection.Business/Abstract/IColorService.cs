@@ -15,3 +15,4 @@ public interface IColorService
    Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id);
    Task<ResponseDto<NoContentDto>> ToggleIsActiveAsync(int id);
 }
+
