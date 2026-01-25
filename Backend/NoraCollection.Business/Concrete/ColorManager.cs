@@ -38,20 +38,21 @@ public class ColorManager : IColorService
             // Mapping'deki mantığın aynısını kontrol için burada da uyguluyoruz
             var normalizadeHex = colorCreateDto.HexCode.Trim().ToUpper().StartsWith("#")
             ? colorCreateDto.HexCode.Trim().ToUpper()
-            : $"{colorCreateDto.HexCode.Trim().ToUpper()}";
+            : $"#{colorCreateDto.HexCode.Trim().ToUpper()}";
             var isExists = await _colorRepository.ExistsAsync(
                x => !x.IsDeleted &&
                  (x.Name.ToLower() == normalizadeName || x.HexCode == normalizadeHex)
             );
             if (isExists)
             {
-                return ResponseDto<ColorDto>.Fail("Bu renk isminden bir renk ismi mevcut!", StatusCodes.Status400BadRequest);
+                return ResponseDto<ColorDto>.Fail("Bu isimde veya renkte bir kayıt zaten mevcut!", StatusCodes.Status400BadRequest);
             }
             if (string.IsNullOrWhiteSpace(colorCreateDto.HexCode))
             {
                 return ResponseDto<ColorDto>.Fail("Hex kod zorunludur!", StatusCodes.Status400BadRequest);
             }
             var color = _mapper.Map<Color>(colorCreateDto);
+            color.HexCode = normalizadeHex; // Garantiye alıyoruz.
             await _colorRepository.AddAsync(color);
             var result = await _unitOfWork.SaveAsync();
             if (result < 1)
@@ -86,7 +87,7 @@ public class ColorManager : IColorService
             if (isActive.HasValue)
             {
                 var activeValue = isActive.Value;
-                predicate = CombinePredicates(predicate, x => isActive == activeValue);
+                predicate = CombinePredicates(predicate, x => x.IsActive == activeValue);
             }
             var count = await _colorRepository.CountAsync(
                 predicate: predicate,
@@ -127,14 +128,14 @@ public class ColorManager : IColorService
                 var activeValue = isActive.Value;
                 predicate = CombinePredicates(predicate, x => x.IsActive == activeValue);
             }
-            Func<IQueryable<Color>,IOrderedQueryable<Color>> orderByFunc = query =>query.OrderBy(x=>x.DisplayOrder).ThenBy(x=>x.Name);
+            Func<IQueryable<Color>, IOrderedQueryable<Color>> orderByFunc = query => query.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name);
             var colors = await _colorRepository.GetAllAsync(
-                predicate:predicate,
-                orderby:orderByFunc,
-                includeDeleted:includeDeleted
+                predicate: predicate,
+                orderby: orderByFunc,
+                includeDeleted: includeDeleted
             );
             var colorDtos = _mapper.Map<IEnumerable<ColorDto>>(colors);
-            return ResponseDto<IEnumerable<ColorDto>>.Success(colorDtos,StatusCodes.Status200OK);
+            return ResponseDto<IEnumerable<ColorDto>>.Success(colorDtos, StatusCodes.Status200OK);
         }
         catch (Exception ex)
         {
@@ -147,15 +148,15 @@ public class ColorManager : IColorService
         try
         {
             var color = await _colorRepository.GetAsync(
-                x=>x.Id == id && !x.IsDeleted,
-                includeDeleted:false
+                x => x.Id == id && !x.IsDeleted,
+                includeDeleted: false
             );
             if (color is null)
             {
-                return ResponseDto<ColorDto>.Fail($"{id} id'li renk bulunamadı!",StatusCodes.Status404NotFound);
+                return ResponseDto<ColorDto>.Fail($"{id} id'li renk bulunamadı!", StatusCodes.Status404NotFound);
             }
             var colorDto = _mapper.Map<ColorDto>(color);
-            return ResponseDto<ColorDto>.Success(colorDto,StatusCodes.Status200OK);
+            return ResponseDto<ColorDto>.Success(colorDto, StatusCodes.Status200OK);
         }
         catch (Exception ex)
         {
@@ -163,24 +164,172 @@ public class ColorManager : IColorService
         }
     }
 
-    public Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var color = await _colorRepository.GetAsync(
+               predicate: x => x.Id == id && !x.IsDeleted,
+               includeDeleted: false
+            );
+            if (color is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{id} id'li renk bulunamadı!", StatusCodes.Status400BadRequest);
+            }
+            var hasProducts = await _productRepository.ExistsAsync(
+               x => x.ColorId == id && !x.IsDeleted
+            );
+            if (hasProducts)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu renk koduna bağlı aktif ürünler olduğu için silinemez!", StatusCodes.Status400BadRequest);
+            }
+            var hasProductVariants = await _productVariantRepository.ExistsAsync(
+               x => x.ColorId == id && !x.IsDeleted
+            );
+            if (hasProductVariants)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu renk koduna bağlı ürün variantları olduğu için silinemez!", StatusCodes.Status400BadRequest);
+            }
+            var hasProductImages = await _productImageRepository.ExistsAsync(
+               x => x.ColorId == id && !x.IsDeleted
+            );
+            if (hasProductImages)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu renk koduna bağlı ürün görselleri olduğu için silinemez!", StatusCodes.Status400BadRequest);
+            }
+            _colorRepository.Delete(color);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Renk silinirken bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Renk silinirken bir hata oluştu!:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var color = await _colorRepository.GetAsync(
+               predicate: x => x.Id == id && !x.IsDeleted,
+               includeDeleted: true
+            );
+            if (color is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{id} id'li renk bulunamadı!", StatusCodes.Status400BadRequest);
+            }
+            var hasProducts = await _productRepository.ExistsAsync(
+               x => x.ColorId == id && !x.IsDeleted
+            );
+            if (hasProducts)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu renk koduna bağlı aktif ürünler olduğu için silinemez!", StatusCodes.Status400BadRequest);
+            }
+            var hasProductVariants = await _productVariantRepository.ExistsAsync(
+               x => x.ColorId == id && !x.IsDeleted
+            );
+            if (hasProductVariants)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu renk koduna bağlı ürün variantları olduğu için silinemez!", StatusCodes.Status400BadRequest);
+            }
+            var hasProductImages = await _productImageRepository.ExistsAsync(
+               x => x.ColorId == id && !x.IsDeleted
+            );
+            if (hasProductImages)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu renk koduna bağlı ürün görselleri olduğu için silinemez!", StatusCodes.Status400BadRequest);
+            }
+            color.IsDeleted = true;
+            color.DeletedAt = DateTimeOffset.UtcNow;
+            _colorRepository.Update(color);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Renk silinirken bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Renk silinirken bir hata oluştu!:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> ToggleIsActiveAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> ToggleIsActiveAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var color = await _colorRepository.GetAsync(
+                x => x.Id == id && !x.IsDeleted,
+                includeDeleted: false
+            );
+            if (color is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{id} id'li renk bulunamadı!", StatusCodes.Status400BadRequest);
+            }
+            color.IsActive = !color.IsActive;
+            color.UpdatedAt = DateTimeOffset.UtcNow;
+            _colorRepository.Update(color);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Renk güncellenirken bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Renk güncellenirken bir hata oluştu!:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateAsync(ColorUpdateDto colorUpdateDto)
+    public async Task<ResponseDto<NoContentDto>> UpdateAsync(ColorUpdateDto colorUpdateDto)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var color = await _colorRepository.GetAsync(
+                x => x.Id == colorUpdateDto.Id && !x.IsDeleted,
+                includeDeleted: false
+            );
+            if (color is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{colorUpdateDto.Id} id'li renk bulunamadı!", StatusCodes.Status400BadRequest);
+            }
+            // 1. İsim ve HexCode için normalizasyon (Karşılaştırma garantisi için)
+            var normalizadeName = colorUpdateDto.Name.Trim().ToLower();
+            // Mapping'deki mantığın aynısını kontrol için burada da uyguluyoruz
+            var normalizadeHex = colorUpdateDto.HexCode.Trim().ToUpper().StartsWith("#")
+            ? colorUpdateDto.HexCode.Trim().ToUpper()
+            : $"{colorUpdateDto.HexCode.Trim().ToUpper()}";
+            var isExists = await _colorRepository.ExistsAsync(
+                x => (x.Name.ToLower() == normalizadeName || x.HexCode == normalizadeHex) 
+                && x.Id != colorUpdateDto.Id 
+                && !x.IsDeleted
+            );
+            if (isExists)
+            {
+                return ResponseDto<NoContentDto>.Fail("Bu isim veya hex kodu başka bir renkte kullanılıyor!", StatusCodes.Status400BadRequest);
+            }
+            _mapper.Map(colorUpdateDto, color);
+            color.HexCode = normalizadeHex; // Standardı koruyoruz
+            color.UpdatedAt = DateTimeOffset.UtcNow;
+            _colorRepository.Update(color);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Renk güncellenirken bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Renk güncellenirken bir hata oluştu!:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
     private Expression<Func<Color, bool>> CombinePredicates(
        Expression<Func<Color, bool>> first,

@@ -9,11 +9,11 @@ namespace NoraCollection.API.Controllers
 {
     [Route("stoneTypes")]
     [ApiController]
-    public class StoneTypeController : CustomControllerBase
+    public class StoneTypesController : CustomControllerBase
     {
         private readonly IStoneTypeService _stoneTypeService;
 
-        public StoneTypeController(IStoneTypeService stoneTypeService)
+        public StoneTypesController(IStoneTypeService stoneTypeService)
         {
             _stoneTypeService = stoneTypeService;
         }

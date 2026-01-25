@@ -28,6 +28,7 @@ builder.Services.AddScoped<IProductImageService, ProductImageManager>();
 builder.Services.AddScoped<IProductVariantService, ProductVariantManager>();
 builder.Services.AddScoped<IProductService, ProductManager>();
 builder.Services.AddScoped<IStoneTypeService, StoneTypeManager>();
+builder.Services.AddScoped<IColorService, ColorManager>();
 
 var app = builder.Build();
 
