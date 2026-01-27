@@ -29,6 +29,7 @@ builder.Services.AddScoped<IProductVariantService, ProductVariantManager>();
 builder.Services.AddScoped<IProductService, ProductManager>();
 builder.Services.AddScoped<IStoneTypeService, StoneTypeManager>();
 builder.Services.AddScoped<IColorService, ColorManager>();
+builder.Services.AddScoped<IHeroBannerService, HeroBannerManager>();
 
 var app = builder.Build();
 
