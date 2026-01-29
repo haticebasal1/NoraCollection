@@ -121,33 +121,283 @@ public class HeroBannerManager : IHeroBannerService
         }
     }
 
-    public Task<ResponseDto<IEnumerable<HeroBannerDto>>> GetAllAsync(bool? isdeleted = false, bool? isActive = null)
+    public async Task<ResponseDto<IEnumerable<HeroBannerDto>>> GetAllAsync(bool? isdeleted = false, bool? isActive = null)
     {
-        throw new NotImplementedException();
+        try
+        {
+            Expression<Func<HeroBanner, bool>> predicate;
+            bool includeDeleted;
+            if (isdeleted == null)
+            {
+                includeDeleted = true;
+                predicate = x => true;
+            }
+            else if (isdeleted == true)
+            {
+                includeDeleted = true;
+                predicate = x => x.IsDeleted;
+            }
+            else
+            {
+                includeDeleted = false;
+                predicate = x => !x.IsDeleted;
+            }
+
+            if (isActive.HasValue)
+            {
+                var activeValue = isActive.Value;
+                predicate = CombinePredicates(predicate, x => x.IsActive == activeValue);
+            }
+            Func<IQueryable<HeroBanner>, IOrderedQueryable<HeroBanner>> orderBy = q => q.OrderBy(x => x.DisplayOrder).ThenBy(x => x.Title);
+            var heroBanners = await _herobannerRepository.GetAllAsync(
+                predicate: predicate,
+                orderby: orderBy,
+                includeDeleted: includeDeleted
+            );
+            var heroBannerDto = _mapper.Map<IEnumerable<HeroBannerDto>>(heroBanners);
+            return ResponseDto<IEnumerable<HeroBannerDto>>.Success(heroBannerDto, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<HeroBannerDto>>.Fail(
+            $"Banner listesi getirilirken hata oluştu: {ex.Message}",
+            StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<HeroBannerDto>> GetByIdAsync(int id)
+    public async Task<ResponseDto<HeroBannerDto>> GetByIdAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var heroBanner = await _herobannerRepository.GetAsync(
+                x => x.Id == id && !x.IsDeleted,
+                includeDeleted: false
+            );
+            if (heroBanner is null)
+            {
+                return ResponseDto<HeroBannerDto>.Fail($"{id} id'li banner bulunamdı!", StatusCodes.Status404NotFound);
+            }
+            var heroBannerDto = _mapper.Map<HeroBannerDto>(heroBanner);
+            return ResponseDto<HeroBannerDto>.Success(heroBannerDto, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<HeroBannerDto>.Fail(
+            $"Banner getirilirken hata oluştu: {ex.Message}",
+            StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> HardDeleteAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var heroBanner = await _herobannerRepository.GetAsync(
+                predicate: x => x.Id == id,
+                includeDeleted: true
+            );
+            if (heroBanner is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{id} id'li banner bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            _herobannerRepository.Delete(heroBanner);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Banner silinirken bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            if (!string.IsNullOrWhiteSpace(heroBanner.ImageUrl))
+            {
+                _imageService.DeleteImage(heroBanner.ImageUrl);
+            }
+            if (!string.IsNullOrWhiteSpace(heroBanner.MobileImageUrl))
+            {
+                _imageService.DeleteImage(heroBanner.MobileImageUrl);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail(
+            $"Banner silinirken hata oluştu: {ex.Message}",
+            StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id)
+    public async Task<ResponseDto<NoContentDto>> SoftDeleteAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var heroBanner = await _herobannerRepository.GetAsync(
+               predicate: x => x.Id == id && !x.IsDeleted,
+               includeDeleted: true
+            );
+            if (heroBanner is null)
+            {
+                return ResponseDto<NoContentDto>.Fail($"{id} id'li banner bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            heroBanner.IsDeleted = true;
+            heroBanner.DeletedAt = DateTimeOffset.UtcNow;
+            _herobannerRepository.Update(heroBanner);
+            var result = await _unitOfWork.SaveAsync();
+            if (result < 1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Banner silinirken bir hata oluştu!", StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail(
+            $"Banner silinirken hata oluştu: {ex.Message}",
+            StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> UpdateAsync(HeroBannerUpdateDto heroBannerUpdateDto)
+public async Task<ResponseDto<NoContentDto>> UpdateAsync(HeroBannerUpdateDto heroBannerUpdateDto)
+{
+    try
     {
-        throw new NotImplementedException();
+        // Kaydı bul (silinmemiş)
+        var heroBanner = await _herobannerRepository.GetAsync(
+            predicate: x => x.Id == heroBannerUpdateDto.Id && !x.IsDeleted,
+            includeDeleted: false
+        );
+        if (heroBanner is null)
+        {
+            return ResponseDto<NoContentDto>.Fail($"{heroBannerUpdateDto.Id} id'li banner bulunamadı!", StatusCodes.Status404NotFound);
+        }
+
+        // Title duplicate kontrolü
+        var isTitleExists = await _herobannerRepository.ExistsAsync(
+            x => x.Title!.ToLower() == heroBannerUpdateDto.Title.ToLower() 
+            && x.Id != heroBannerUpdateDto.Id
+        );
+        if (isTitleExists)
+        {
+            return ResponseDto<NoContentDto>.Fail("Bu başlıkta zaten bir banner mevcut!", StatusCodes.Status400BadRequest);
+        }
+
+        // Eski görsel URL'lerini sakla
+        var oldImageUrl = heroBanner.ImageUrl;
+        var oldMobileImageUrl = heroBanner.MobileImageUrl;
+
+        // Ana görsel yükleme (varsa)
+        string? newImageUrl = null;
+        if (heroBannerUpdateDto.Image is not null)
+        {
+            var imageUploadResult = await _imageService.ResizeAndUploadAsync(heroBannerUpdateDto.Image, "hero-banners");
+            if (!imageUploadResult.IsSuccessful)
+            {
+                return ResponseDto<NoContentDto>.Fail(imageUploadResult.Errors, imageUploadResult.StatusCode);
+            }
+            var baseUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}";
+            newImageUrl = $"{baseUrl}/{imageUploadResult.Data!.TrimStart('/')}";
+        }
+
+        // Mobil görsel yükleme (varsa)
+        string? newMobileImageUrl = null;
+        if (heroBannerUpdateDto.MobileImage is not null)
+        {
+            var mobileUploadResult = await _imageService.ResizeAndUploadAsync(heroBannerUpdateDto.MobileImage, "hero-banners");
+            if (!mobileUploadResult.IsSuccessful)
+            {
+                // Mobil görsel hatası: yeni ana görsel yüklenmişse onu da sil (rollback)
+                if (newImageUrl is not null)
+                    _imageService.DeleteImage(newImageUrl);
+                return ResponseDto<NoContentDto>.Fail(mobileUploadResult.Errors, mobileUploadResult.StatusCode);
+            }
+            var baseUrl = $"{_httpContextAccessor.HttpContext!.Request.Scheme}://{_httpContextAccessor.HttpContext.Request.Host}";
+            newMobileImageUrl = $"{baseUrl}/{mobileUploadResult.Data!.TrimStart('/')}";
+        }
+
+        // Dto'dan entity'ye map (Image/MobileImage ignore edilir)
+        _mapper.Map(heroBannerUpdateDto, heroBanner);
+
+        // Yeni görsel URL'lerini set et (varsa)
+        if (newImageUrl is not null)
+        {
+            heroBanner.ImageUrl = newImageUrl;
+        }
+        if (newMobileImageUrl is not null)
+        {
+            heroBanner.MobileImageUrl = newMobileImageUrl;
+        }
+
+        // UpdatedAt güncelle
+        heroBanner.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // Kaydet
+        _herobannerRepository.Update(heroBanner);
+        var result = await _unitOfWork.SaveAsync();
+
+        // Save başarısızsa yeni yüklenen görselleri sil (rollback)
+        if (result < 1)
+        {
+            if (newImageUrl is not null)
+                _imageService.DeleteImage(newImageUrl);
+            if (newMobileImageUrl is not null)
+                _imageService.DeleteImage(newMobileImageUrl);
+            return ResponseDto<NoContentDto>.Fail("Beklenmedik hata oluştu!", StatusCodes.Status500InternalServerError);
+        }
+
+        // Save başarılıysa eski görselleri sil (yeni görsel varsa)
+        if (newImageUrl is not null && !string.IsNullOrWhiteSpace(oldImageUrl))
+        {
+            _imageService.DeleteImage(oldImageUrl);
+        }
+        if (newMobileImageUrl is not null && !string.IsNullOrWhiteSpace(oldMobileImageUrl))
+        {
+            _imageService.DeleteImage(oldMobileImageUrl);
+        }
+
+        return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
     }
+    catch (Exception ex)
+    {
+        return ResponseDto<NoContentDto>.Fail(
+            $"Banner güncellenirken hata oluştu: {ex.Message}",
+            StatusCodes.Status500InternalServerError);
+    }
+}
 
     public Task<ResponseDto<NoContentDto>> UpdateOrderAsync(int id, int newOrder)
     {
         throw new NotImplementedException();
+    }
+    private Expression<Func<HeroBanner, bool>> CombinePredicates(
+       Expression<Func<HeroBanner, bool>> first,
+       Expression<Func<HeroBanner, bool>> second
+   )
+    {
+        // Ortak bir parametre oluştur (her iki expression'da da "x" kullanılıyor)
+        var parameter = Expression.Parameter(typeof(HeroBanner), "x");
+        // İlk expression'daki parametreyi yeni parametreyle değiştir
+        var leftVisitor = new ReplaceExpressionVisitor(first.Parameters[0], parameter);
+        var left = leftVisitor.Visit(first.Body);
+        // İkinci expression'daki parametreyi yeni parametreyle değiştir
+        var rightVisitor = new ReplaceExpressionVisitor(second.Parameters[0], parameter);
+        var right = rightVisitor.Visit(second.Body);
+        // İki expression'ı AND operatörü ile birleştir
+        return Expression.Lambda<Func<HeroBanner, bool>>(Expression.AndAlso(left!, right!), parameter);
+    }
+    // Expression'lardaki parametre çakışmasını önlemek için yardımcı class
+    // Bu class, bir expression'daki parametreyi başka bir parametreyle değiştirir
+    private class ReplaceExpressionVisitor : ExpressionVisitor
+    {
+        private readonly Expression _from;
+        private readonly Expression _to;
+
+        public ReplaceExpressionVisitor(Expression from, Expression to)
+        {
+            _from = from;
+            _to = to;
+        }
+        public override Expression? Visit(Expression? node)
+        {
+            // Eğer ziyaret edilen node, değiştirilmesi gereken parametre ise, yeni parametreyi döndür
+            // Değilse, normal ziyaret işlemini devam ettir
+            return node == _from ? _to : base.Visit(node);
+        }
     }
 }
