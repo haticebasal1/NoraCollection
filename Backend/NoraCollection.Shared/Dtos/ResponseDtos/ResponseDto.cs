@@ -44,5 +44,9 @@ public class ResponseDto<T>
           StatusCode=statusCode  
         };
     }
- 
+
+    public static ResponseDto<int> Fail(int v, int status200OK)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using NoraCollection.Shared.Enums;
 
 namespace NoraCollection.Shared.Dtos.OrderDtos;
 
@@ -28,4 +29,5 @@ public class CheckoutDto
     public string? GiftNote { get; set; }           // Hediye notu
     public int? GiftOptionId { get; set; }          // Hediye paketi seçimi
     public string? CouponCode { get; set; }         // Kupon kodu
+    public PaymentMethod PaymentMethod { get; set; }
 }

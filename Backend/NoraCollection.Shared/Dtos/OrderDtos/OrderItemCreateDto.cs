@@ -5,7 +5,7 @@ namespace NoraCollection.Shared.Dtos.OrderDtos;
 
 public class OrderItemCreateDto
 {
-    [Required(ErrorMessage="Üürn id'si zorunludur!")]
+    [Required(ErrorMessage="Ürün id'si zorunludur!")]
     public int ProductId { get; set; }
 
     [Required(ErrorMessage ="Adet bilgisi zorunludur!")]
@@ -14,4 +14,5 @@ public class OrderItemCreateDto
 
     [Required(ErrorMessage ="Ürün fiyatı zorunludur!")]
     public decimal UnitPrice { get; set; }
+    public int? ProductVariantId { get; set; }
 }

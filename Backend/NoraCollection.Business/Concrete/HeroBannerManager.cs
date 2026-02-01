@@ -361,9 +361,35 @@ public async Task<ResponseDto<NoContentDto>> UpdateAsync(HeroBannerUpdateDto her
     }
 }
 
-    public Task<ResponseDto<NoContentDto>> UpdateOrderAsync(int id, int newOrder)
+    public async Task<ResponseDto<NoContentDto>> UpdateOrderAsync(int id, int newOrder)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var heroBanner = await _herobannerRepository.GetAsync(
+                x=>x.Id == id && !x.IsDeleted,
+                includeDeleted:false
+            );
+            if (heroBanner is null)
+            {
+              return ResponseDto<NoContentDto>.Fail($"{id} id'li banner bulunamadı!",StatusCodes.Status404NotFound);  
+            }
+            heroBanner.DisplayOrder = newOrder;
+            heroBanner.UpdatedAt=DateTimeOffset.UtcNow;
+            _herobannerRepository.Update(heroBanner);
+
+            var result = await _unitOfWork.SaveAsync();
+            if (result<1)
+            {
+                return ResponseDto<NoContentDto>.Fail("Sıralama güncellenirken bir hata oluştu!",StatusCodes.Status500InternalServerError);
+            }
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+    {
+        return ResponseDto<NoContentDto>.Fail(
+            $"Sıralama güncellenirken hata oluştu: {ex.Message}",
+            StatusCodes.Status500InternalServerError);
+    }
     }
     private Expression<Func<HeroBanner, bool>> CombinePredicates(
        Expression<Func<HeroBanner, bool>> first,

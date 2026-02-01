@@ -30,6 +30,7 @@ builder.Services.AddScoped<IProductService, ProductManager>();
 builder.Services.AddScoped<IStoneTypeService, StoneTypeManager>();
 builder.Services.AddScoped<IColorService, ColorManager>();
 builder.Services.AddScoped<IHeroBannerService, HeroBannerManager>();
+builder.Services.AddScoped<ICartService, CartManager>();
 
 var app = builder.Build();
 

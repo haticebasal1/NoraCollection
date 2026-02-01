@@ -1109,6 +1109,35 @@ public class ProductManager : IProductService
             return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
         }
     }
+
+
+
+    // Ürün stok kontrolü (varyant üzerinden). Takı projesi için stok varyantta tutulduğundan productId + variantId ile kontrol yapılır.
+    public async Task<ResponseDto<bool>> CheckStockAsync(int productId, int variantId, int requestedQuantity)
+    {
+        try
+        {
+            // Varyant üzerinden stok kontrolü (varyantın bu ürüne ait olduğu da doğrulanır)
+            var variant = await _productVariantRepository.GetAsync(
+                x => x.Id == variantId && x.ProductId == productId && !x.IsDeleted,
+                includeDeleted: false
+            );
+
+            if (variant is null)
+                return ResponseDto<bool>.Fail("Ürün seçeneği bulunamadı!", StatusCodes.Status404NotFound);
+
+            if (requestedQuantity <= 0)
+                return ResponseDto<bool>.Fail("Miktar 1'den az olamaz!", StatusCodes.Status400BadRequest);
+
+            bool hasEnoughStock = variant.Stock >= requestedQuantity;
+            return ResponseDto<bool>.Success(hasEnoughStock, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<bool>.Fail($"Hata: {ex.Message}", StatusCodes.Status500InternalServerError);
+        }
+    }
+
     private string GenerateSlug(string name)
     {
         var slug = name.ToLowerInvariant()

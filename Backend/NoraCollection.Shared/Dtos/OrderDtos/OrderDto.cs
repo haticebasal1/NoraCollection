@@ -29,4 +29,7 @@ public class OrderDto
     public ICollection<OrderItemDto> OrderItems { get; set; } = [];
     public ICollection<OrderCouponDto>? OrderCoupons { get; set; } = [];
     //  public ShippingDto? Shipping { get; set; }
+    public PaymentMethod PaymentMethod { get; set; }
+    public string? GiftNote { get; set; }
+    public int? GiftOptionId { get; set; }
 }

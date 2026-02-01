@@ -12,4 +12,6 @@ public class OrderItemDto
     public decimal UnitPrice { get; set; }
     public int Quantity { get; set; }
     public decimal ItemAmount => Quantity * UnitPrice;
+    public int? ProductVariantId { get; set; }
+    public string? VariantName { get; set; }
 }

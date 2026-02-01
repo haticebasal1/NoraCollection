@@ -323,7 +323,19 @@ namespace NoraCollection.Data.Migrations
                     b.Property<DateTimeOffset>("DeletedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("GiftNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("GiftOptionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsGiftPackage")
                         .HasColumnType("bit");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
@@ -333,6 +345,8 @@ namespace NoraCollection.Data.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GiftOptionId");
 
                     b.HasIndex("UserId");
 
@@ -362,8 +376,14 @@ namespace NoraCollection.Data.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ProductVariantId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
@@ -373,6 +393,8 @@ namespace NoraCollection.Data.Migrations
                     b.HasIndex("CartId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductVariantId");
 
                     b.ToTable("CartItems");
                 });
@@ -426,7 +448,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 25, 22, 6, 18, 644, DateTimeKind.Unspecified).AddTicks(1870), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(2470), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Description = "Farklı taş ve modellerden oluşan yüzük koleksiyonu.",
                             ImageUrl = "yuzuk.png",
@@ -438,7 +460,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 25, 22, 6, 18, 644, DateTimeKind.Unspecified).AddTicks(1880), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(2470), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Description = "Zarif ve modern kolye modelleri.",
                             ImageUrl = "kolye.png",
@@ -450,7 +472,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 25, 22, 6, 18, 644, DateTimeKind.Unspecified).AddTicks(1880), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(2470), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Description = "Günlük ve özel tasarım bileklik çeşitleri.",
                             ImageUrl = "bileklik.png",
@@ -770,6 +792,12 @@ namespace NoraCollection.Data.Migrations
                     b.Property<decimal>("FinalTotal")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("GiftNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("GiftOptionId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -777,6 +805,9 @@ namespace NoraCollection.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("OrderStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaymentMethod")
                         .HasColumnType("int");
 
                     b.Property<string>("PhoneNumber")
@@ -798,6 +829,8 @@ namespace NoraCollection.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GiftOptionId");
 
                     b.HasIndex("UserId");
 
@@ -862,6 +895,9 @@ namespace NoraCollection.Data.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ProductVariantId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -876,6 +912,8 @@ namespace NoraCollection.Data.Migrations
                     b.HasIndex("OrderId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductVariantId");
 
                     b.ToTable("OrderItems");
                 });
@@ -970,7 +1008,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 25, 22, 6, 18, 644, DateTimeKind.Unspecified).AddTicks(5640), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6140), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/yuzuk-altin.png",
                             IsBestSeller = false,
@@ -987,7 +1025,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 25, 22, 6, 18, 644, DateTimeKind.Unspecified).AddTicks(5640), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6150), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/kolye-gumus.png",
                             IsBestSeller = false,
@@ -1004,7 +1042,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 25, 22, 6, 18, 644, DateTimeKind.Unspecified).AddTicks(5650), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6150), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/bileklik-deri.png",
                             IsBestSeller = false,
@@ -1021,7 +1059,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 25, 22, 6, 18, 644, DateTimeKind.Unspecified).AddTicks(5650), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6150), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/kupe-altin.png",
                             IsBestSeller = false,
@@ -1038,7 +1076,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 25, 22, 6, 18, 644, DateTimeKind.Unspecified).AddTicks(5650), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6150), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/halhal-gumus.png",
                             IsBestSeller = false,
@@ -1525,9 +1563,15 @@ namespace NoraCollection.Data.Migrations
 
             modelBuilder.Entity("NoraCollection.Entities.Concrete.Cart", b =>
                 {
+                    b.HasOne("NoraCollection.Entities.Concrete.GiftOption", "GiftOption")
+                        .WithMany()
+                        .HasForeignKey("GiftOptionId");
+
                     b.HasOne("NoraCollection.Entities.Concrete.User", "User")
                         .WithMany("Carts")
                         .HasForeignKey("UserId");
+
+                    b.Navigation("GiftOption");
 
                     b.Navigation("User");
                 });
@@ -1546,9 +1590,15 @@ namespace NoraCollection.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("NoraCollection.Entities.Concrete.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId");
+
                     b.Navigation("Cart");
 
                     b.Navigation("Product");
+
+                    b.Navigation("ProductVariant");
                 });
 
             modelBuilder.Entity("NoraCollection.Entities.Concrete.CustomDesign", b =>
@@ -1579,9 +1629,15 @@ namespace NoraCollection.Data.Migrations
 
             modelBuilder.Entity("NoraCollection.Entities.Concrete.Order", b =>
                 {
+                    b.HasOne("NoraCollection.Entities.Concrete.GiftOption", "GiftOption")
+                        .WithMany()
+                        .HasForeignKey("GiftOptionId");
+
                     b.HasOne("NoraCollection.Entities.Concrete.User", "User")
                         .WithMany("Orders")
                         .HasForeignKey("UserId");
+
+                    b.Navigation("GiftOption");
 
                     b.Navigation("User");
                 });
@@ -1619,9 +1675,15 @@ namespace NoraCollection.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("NoraCollection.Entities.Concrete.ProductVariant", "ProductVariant")
+                        .WithMany()
+                        .HasForeignKey("ProductVariantId");
+
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+
+                    b.Navigation("ProductVariant");
                 });
 
             modelBuilder.Entity("NoraCollection.Entities.Concrete.Product", b =>

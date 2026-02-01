@@ -58,6 +58,8 @@ public interface IProductService
   Task<ResponseDto<NoContentDto>> UpdateIsFeaturedAsync(int id);
   //Ürünün stok miktarını günceller.
   Task<ResponseDto<NoContentDto>> UpdateStockAsync(int id, int stock);
+  // Ürün stok kontrolü (varyant üzerinden; productId + variantId ile ürün–varyant eşleşmesi doğrulanır).
+  Task<ResponseDto<bool>> CheckStockAsync(int productId, int variantId, int requestedQuantity);
   //Ürünün indirimli fiyatını günceller.
   Task<ResponseDto<NoContentDto>> UpdateDiscountedPriceAsync(int id, decimal? discountedPrice);
   //Belirli bir kategorideki tüm ürünleri yumuşak siler.

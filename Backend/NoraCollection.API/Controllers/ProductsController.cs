@@ -137,6 +137,13 @@ namespace NoraCollection.API.Controllers
             var response = await _productManager.UpdateAsync(productUpdateDto);
             return CreateResult(response);
         }
+        // Ürün stok kontrolü (varyant üzerinden; productId + variantId ile)
+        [HttpGet("{id:int}/check-stock")]
+        public async Task<IActionResult> CheckStock(int id, [FromQuery] int variantId, [FromQuery] int quantity)
+        {
+            var response = await _productManager.CheckStockAsync(id, variantId, quantity);
+            return CreateResult(response);
+        }
         // Ürünün stok miktarını günceller
         [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}/stock")]

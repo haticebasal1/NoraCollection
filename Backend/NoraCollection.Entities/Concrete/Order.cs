@@ -50,4 +50,13 @@ public class Order : BaseEntity, IEntity
     public ICollection<OrderCoupon>? OrderCoupons { get; set; } = [];
 
     public Shipping? Shipping { get; set; }
+    // Ödeme yöntemi (Kredi kartı / Havale-EFT)
+    public PaymentMethod PaymentMethod { get; set; }
+
+    // Sepetten gelen hediye notu
+    public string? GiftNote { get; set; }
+
+    // Hediye paketi seçeneği (GiftOption tablosu)
+    public int? GiftOptionId { get; set; }
+    public GiftOption? GiftOption { get; set; }
 }
