@@ -1,10 +1,11 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using NoraCollection.Shared.Enums;
 
 namespace NoraCollection.Shared.Dtos.OrderDtos;
 
-public class CheckoutDto
+public class OrderNowDto
 {
     [JsonIgnore]
     public string? UserId { get; set; }

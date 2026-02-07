@@ -44,5 +44,8 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
+// Ana sayfaya (/) gelen istekleri direkt /swagger'a yönlendir
+app.MapGet("/", () => Results.Redirect("/swagger"))
+   .ExcludeFromDescription(); // Bu satır Swagger listesinde görünmesini engeller
 
 app.Run();
