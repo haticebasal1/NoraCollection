@@ -30,22 +30,26 @@ public class OrderProfile:Profile
                     .ForMember(
                         dest=>dest.User,
                         opt=>opt.Ignore())
-                        .ForMember(
-                            dest=>dest.OrderItems,
-                            opt=>opt.Ignore())
-                        .ForMember(
-                            dest=>dest.OrderCoupons,
-                            opt=>opt.Ignore())
-                            .ReverseMap();
-            CreateMap<OrderItem,OrderItemDto>()
-            .ForMember(
-                dest=>dest.ProductName,
-                opt=>opt.MapFrom(src=>src.Product!.Name))
-                .ForMember(
-                    dest=>dest.ProductImageUrl,
-                    opt=>opt.MapFrom(src=>src.Product!.ImageUrl))
                     .ReverseMap();
+            CreateMap<OrderItem, OrderItemDto>()
+                .ForMember(
+                    dest => dest.ProductName,
+                    opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null))
+                .ForMember(
+                    dest => dest.ProductImageUrl,
+                    opt => opt.MapFrom(src => src.Product != null ? src.Product.ImageUrl : null))
+                .ForMember(
+                    dest => dest.VariantName,
+                    opt => opt.MapFrom(src => src.ProductVariant != null ? src.ProductVariant.Size : null))
+                .ReverseMap();
                     CreateMap<OrderItemCreateDto,OrderItem>();
-                    CreateMap<OrderCoupon,OrderCouponDto>().ReverseMap();
+            CreateMap<OrderCoupon, OrderCouponDto>()
+                .ForMember(
+                    dest => dest.CouponCode,
+                    opt => opt.MapFrom(src => src.Coupon != null ? src.Coupon.Code : null))
+                .ForMember(
+                    dest => dest.DiscountAmount,
+                    opt => opt.MapFrom(src => src.Coupon != null ? src.Coupon.DiscountAmount : 0m))
+                .ReverseMap();
     }
 }

@@ -10,11 +10,13 @@ public class OrderCouponProfile : Profile
     public OrderCouponProfile()
     {
         CreateMap<OrderCoupon, OrderCouponDto>()
-        .ForMember(
-            dest => dest.CouponCode,
-            opt => opt.MapFrom(src => src.Coupon != null ? src.Coupon.Code : null)
-        )
-        .ReverseMap()
+            .ForMember(
+                dest => dest.CouponCode,
+                opt => opt.MapFrom(src => src.Coupon != null ? src.Coupon.Code : null))
+            .ForMember(
+                dest => dest.DiscountAmount,
+                opt => opt.MapFrom(src => src.Coupon != null ? src.Coupon.DiscountAmount : 0m))
+            .ReverseMap()
         .ForMember(
             dest => dest.Coupon,
             opt => opt.Ignore())
