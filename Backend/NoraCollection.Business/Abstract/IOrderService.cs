@@ -14,7 +14,7 @@ public interface IOrderService
   Task<ResponseDto<OrderDto>> OrderNowAsync(OrderNowDto orderNowDto);
 
   // Belirtilen kullanıcıya ait tüm siparişleri getirir (kullanıcının "Siparişlerim" listesi).
-  Task<ResponseDto<IEnumerable<OrderDto>>> GetMyOrdersAsync(string userId);
+  Task<ResponseDto<IEnumerable<OrderDto>>> GetMyOrdersAsync(string userId , int pageNumber = 1, int pageSize = 20);
 
   // Id ile tek bir sipariş getirir. Genelde admin veya detay sayfası için kullanılır; kullanıcı kontrolü yoktur.
   Task<ResponseDto<OrderDto>> GetOrderAsync(int id);

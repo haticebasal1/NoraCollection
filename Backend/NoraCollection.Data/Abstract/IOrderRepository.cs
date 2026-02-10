@@ -8,4 +8,7 @@ public interface IOrderRepository : IGenericRepository<Order>
 {
   // Ciro hesabı için asenkron metot
   Task<decimal> GetOrdersTotalAsync(OrderFiltersDto orderFiltersDto);
+
+    // Yeni: sayfalı sipariş listesi
+    Task<IEnumerable<Order>> GetPagedAsync(OrderFiltersDto filters);
 }

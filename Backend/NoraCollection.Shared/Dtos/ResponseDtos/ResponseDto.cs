@@ -20,14 +20,6 @@ public class ResponseDto<T>
             IsSuccessful=true
         };
     }
-    public static ResponseDto<T> Success(int statusCode)
-    {
-        return new ResponseDto<T>
-        {
-          IsSuccessful=true,
-          StatusCode=statusCode  
-        };
-    }
     public static ResponseDto<T> Fail(string error, int statusCode)
     {
         return new ResponseDto<T>
@@ -46,6 +38,11 @@ public class ResponseDto<T>
     }
 
     public static ResponseDto<int> Fail(int v, int status200OK)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static ResponseDto<NoContentDto> Success(int status200OK)
     {
         throw new NotImplementedException();
     }

@@ -34,4 +34,7 @@ public class OrderNowDto
     public int? GiftOptionId { get; set; }          // Hediye paketi seçimi
     public string? CouponCode { get; set; }         // Kupon kodu
     public PaymentMethod PaymentMethod { get; set; }
+
+    /// "Hemen Al" ile siparişe eklenecek ürün kalemleri. En az 1 kalem olmalıdır.
+    public List<OrderItemCreateDto> OrderItems { get; set; } = new();
 }

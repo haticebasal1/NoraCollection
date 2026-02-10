@@ -1,4 +1,6 @@
 using System;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -28,9 +30,7 @@ public class OrderManager : IOrderService
     private readonly IGenericRepository<User> _userRepository;
     private readonly IOrderRepository _order;
 
-    /// <summary>
     /// Hangi sipariş durumundan hangi duruma geçilebileceği. Geçersiz geçişler (örn. Delivered → Pending) engellenir.
-    /// </summary>
     private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
     {
         [OrderStatus.PendingPayment] = new[] { OrderStatus.Paid },
@@ -71,7 +71,7 @@ public class OrderManager : IOrderService
                               .ThenInclude(oi => oi.Product)
                         .Include(o => o.OrderItems)
                             .ThenInclude(oi => oi.ProductVariant)
-                              .Include(o => o.OrderCoupons)
+                              .Include(o => o.OrderCoupons!)
                          .ThenInclude(oc => oc.Coupon)
             );
             if (order is null)
@@ -277,9 +277,9 @@ public class OrderManager : IOrderService
                 await _orderCouponRepository.AddAsync(orderCoupon);
 
                 var coupon = await _couponRepository.GetAsync(
-                    x=>x.Id == cart.CouponId.Value
+                    x => x.Id == cart.CouponId.Value
                 );
-                if (coupon!=null)
+                if (coupon != null)
                 {
                     coupon.UsedCount++;
                     _couponRepository.Update(coupon);
@@ -292,15 +292,16 @@ public class OrderManager : IOrderService
                 {
                     var variant = await _productVariantRepository.GetAsync(
                         x => x.Id == item.ProductVariantId.Value);
-                    if (variant!=null)
+                    if (variant != null)
                     {
                         variant.Stock -= item.Quantity;
                         _productVariantRepository.Update(variant);
                     }
-                }else
+                }
+                else
                 {
-                    var product = await _productRepository.GetAsync(x=>x.Id == item.ProductId);
-                    if (product!=null)
+                    var product = await _productRepository.GetAsync(x => x.Id == item.ProductId);
+                    if (product != null)
                     {
                         product.Stock -= item.Quantity;
                         _productRepository.Update(product);
@@ -316,7 +317,7 @@ public class OrderManager : IOrderService
                 includeDeleted: false,
                 includes: q => q.Include(o => o.OrderItems).ThenInclude(oi => oi.Product)
                     .Include(o => o.OrderItems).ThenInclude(oi => oi.ProductVariant)
-                    .Include(o => o.OrderCoupons).ThenInclude(oc => oc.Coupon));
+                    .Include(o => o.OrderCoupons!).ThenInclude(oc => oc.Coupon));
             if (orderWithDetails is null)
             {
                 return ResponseDto<OrderDto>.Fail("Sipariş yüklenemedi.", StatusCodes.Status500InternalServerError);
@@ -330,33 +331,274 @@ public class OrderManager : IOrderService
         }
     }
 
-    public Task<ResponseDto<IEnumerable<OrderDto>>> GetAllAsync(OrderFiltersDto orderFiltersDto)
+    public async Task<ResponseDto<IEnumerable<OrderDto>>> GetAllAsync(OrderFiltersDto orderFiltersDto)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var orders = await _order.GetPagedAsync(orderFiltersDto);
+            var orderDtos = _mapper.Map<IEnumerable<OrderDto>>(orders);
+            return ResponseDto<IEnumerable<OrderDto>>.Success(orderDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<OrderDto>>.Fail($"Beklenmedik hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<OrderDto>> GetMyOrderByIdAsync(int id, string userId)
+    public async Task<ResponseDto<OrderDto>> GetMyOrderByIdAsync(int id, string userId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var order = await _orderRepository.GetAsync(
+                predicate: x => x.Id == id && x.UserId == userId,
+                includeDeleted: false,
+                includes: query => query.Include(x => x.User)
+                .Include(x => x.OrderItems).ThenInclude(oi => oi.Product)
+                .Include(x => x.OrderItems).ThenInclude(oi => oi.ProductVariant)
+                .Include(x => x.OrderCoupons!).ThenInclude(oc => oc.Coupon)
+            );
+            if (order is null)
+            {
+                return ResponseDto<OrderDto>.Fail("Sipariş bilgisi bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var orderDto = _mapper.Map<OrderDto>(order);
+            return ResponseDto<OrderDto>.Success(orderDto, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<OrderDto>.Fail($"Beklenmedik hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<OrderDto>>> GetMyOrdersAsync(string userId)
+    public async Task<ResponseDto<IEnumerable<OrderDto>>> GetMyOrdersAsync(string userId, int pageNumber = 1, int pageSize = 20)
     {
-        throw new NotImplementedException();
+        try
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return ResponseDto<IEnumerable<OrderDto>>.Fail("Kullanıcı bilgisi bulunamadı!", StatusCodes.Status401Unauthorized);
+            }
+            // Sayfalama: 0 veya negatif gelirse varsayılana çek (1. sayfa, sayfa başına 20 kayıt)
+            var filters = new OrderFiltersDto
+            {
+                UserId = userId,
+                PageNumber = pageNumber <= 0 ? 1 : pageNumber,
+                PageSize = pageSize <= 0 ? 20 : pageSize
+            };
+            var orders = await _order.GetPagedAsync(filters);
+            var orderDtos = _mapper.Map<IEnumerable<OrderDto>>(orders);
+            return ResponseDto<IEnumerable<OrderDto>>.Success(orderDtos, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<OrderDto>>.Fail($"Beklenmedik hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<OrderDto>> GetOrderAsync(int id)
+    public async Task<ResponseDto<OrderDto>> GetOrderAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var order = await _orderRepository.GetAsync(
+            predicate: x => x.Id == id,
+            includeDeleted: false,
+            includes: query => query.Include(x => x.User)
+            .Include(o => o.OrderItems).ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems).ThenInclude(oi => oi.ProductVariant)
+            .Include(o => o.OrderCoupons!).ThenInclude(oc => oc.Coupon)
+            );
+            if (order is null)
+            {
+                return ResponseDto<OrderDto>.Fail("Sipariş bilgisi bulunamadı!", StatusCodes.Status404NotFound);
+            }
+
+            var orderDto = _mapper.Map<OrderDto>(order);
+            return ResponseDto<OrderDto>.Success(orderDto, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<OrderDto>.Fail($"Beklenmedik hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<decimal>> GetOrdersTotalAsync(OrderFiltersDto orderFiltersDto)
+    public async Task<ResponseDto<decimal>> GetOrdersTotalAsync(OrderFiltersDto orderFiltersDto)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var total = await _order.GetOrdersTotalAsync(orderFiltersDto);
+            return ResponseDto<decimal>.Success(total, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<decimal>.Fail($"Beklenmedik hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<OrderDto>> OrderNowAsync(OrderNowDto orderNowDto)
+    public async Task<ResponseDto<OrderDto>> OrderNowAsync(OrderNowDto orderNowDto)
     {
-        throw new NotImplementedException();
+        try
+        {
+            //UserId kontrol
+            if (string.IsNullOrWhiteSpace(orderNowDto.UserId))
+            {
+                return ResponseDto<OrderDto>.Fail("Kullanıcı bilgisi bulunamadı!", StatusCodes.Status401Unauthorized);
+            }
+            //OrderItem kontrol
+            if (orderNowDto.OrderItems == null || !orderNowDto.OrderItems.Any())
+            {
+                return ResponseDto<OrderDto>.Fail("En az bir ürün seçilmelidir!", StatusCodes.Status400BadRequest);
+            }
+            //Stok kontrol
+            foreach (var item in orderNowDto.OrderItems)
+            {
+                if (item.ProductVariantId.HasValue)
+                {
+                    var stock = await _productManager.CheckStockAsync(
+                        item.ProductId, item.ProductVariantId.Value, item.Quantity
+                    );
+                    if (!stock.IsSuccessful || stock.Data == false)
+                    {
+                        return ResponseDto<OrderDto>.Fail("Bu ürün için yeterli stok yok.", StatusCodes.Status400BadRequest);
+                    }
+                }
+                else
+                {
+                    var product = await _productRepository.GetAsync(x => x.Id == item.ProductId);
+                    if (product == null || product.Stock < item.Quantity)
+                    {
+                        return ResponseDto<OrderDto>.Fail("Bu ürün için yeterli stok yok.", StatusCodes.Status400BadRequest);
+                    }
+                }
+            }
+
+            //Tutar hesaplama
+            decimal totalAmount = orderNowDto.OrderItems.Sum(x => x.UnitPrice * x.Quantity);
+            decimal discountAmount = 0m;
+            decimal shippingFee = 0m;
+
+            //Kupon kontrol
+            if (!string.IsNullOrWhiteSpace(orderNowDto.CouponCode))
+            {
+                var now = DateTime.UtcNow;
+                var code = orderNowDto.CouponCode.Trim().ToUpperInvariant();
+                var coupon = await _couponRepository.GetAsync(
+                    x => x.Code != null
+                         && x.Code.Trim().ToUpperInvariant() == code
+                         && x.IsActive && !x.IsDeleted && x.ExpiryDate >= now && x.UsedCount < x.UsageLimit,
+                    includeDeleted: false
+                );
+                if (coupon != null)
+                {
+                    discountAmount = coupon.DiscountAmount;
+                    if (discountAmount > totalAmount)
+                    {
+                        discountAmount = totalAmount;
+                    }
+                }
+            }
+            decimal finalTotal = totalAmount - discountAmount + shippingFee;
+
+           //Order entity oluştur.
+            var orderDate = DateTime.UtcNow;
+            var order = new Order(
+                orderNowDto.UserId,
+                orderNowDto.CustomerName,
+                orderNowDto.PhoneNumber,
+                orderNowDto.Email,
+                orderNowDto.Address,
+                orderNowDto.City,
+                orderNowDto.District,
+                orderNowDto.ZipCode ?? "",
+                orderDate,
+                totalAmount,
+                discountAmount,
+                shippingFee,
+                finalTotal
+            );
+            order.PaymentMethod = orderNowDto.PaymentMethod;
+            order.GiftNote = orderNowDto.GiftNote;
+            order.GiftOptionId = orderNowDto.GiftOptionId;
+
+            await _orderRepository.AddAsync(order);
+            var savedResult = await _unitOfWork.SaveAsync();
+            if (savedResult < 1)
+            {
+                return ResponseDto<OrderDto>.Fail("Sipariş oluşturulurken bir hata oluştu.", StatusCodes.Status500InternalServerError);
+            }
+            //OrderItem Kayıtı
+            foreach (var item in orderNowDto.OrderItems)
+            {
+                var orderItem = new OrderItem(
+                    order.Id,
+                    item.ProductId,
+                    item.Quantity,
+                    item.UnitPrice,
+                    item.ProductVariantId
+                );
+                await _orderItemRepository.AddAsync(orderItem);
+            }
+            //Kupon artırıldıysa ordercoupon+usedcount artır.
+            if (discountAmount > 0 && !string.IsNullOrWhiteSpace(orderNowDto.CouponCode))
+            {
+                var code = orderNowDto.CouponCode.Trim().ToUpperInvariant();
+                var coupon = await _couponRepository.GetAsync(
+                    x => x.Code != null && x.Code.Trim().ToUpperInvariant() == code,
+                    includeDeleted: false
+                );
+                if (coupon != null)
+                {
+                    var orderCoupon = new OrderCoupon
+                    {
+                        OrderId = order.Id,
+                        CouponId = coupon.Id
+                    };
+                    await _orderCouponRepository.AddAsync(orderCoupon);
+                    coupon.UsedCount++;
+                    _couponRepository.Update(coupon);
+                }
+            }
+            await _unitOfWork.SaveAsync();
+
+            //Stok Düşme
+            foreach (var item in orderNowDto.OrderItems)
+            {
+                if (item.ProductVariantId.HasValue)
+                {
+                    var variant = await _productVariantRepository.GetAsync(x => x.Id == item.ProductVariantId!.Value);
+                    if (variant != null)
+                    {
+                        variant.Stock -= item.Quantity;
+                        _productVariantRepository.Update(variant);
+                    }
+                }else
+                {
+                    var product = await _productRepository.GetAsync(x=>x.Id == item.ProductId);
+                    if (product != null)
+                    {
+                        product.Stock -= item.Quantity;
+                        _productRepository.Update(product);
+                    }
+                }
+            }
+            await _unitOfWork.SaveAsync();
+
+            var orderWithDetails = await _orderRepository.GetAsync(
+                predicate: x=>x.Id == order.Id,
+                includeDeleted:false,
+                includes: q => q.Include(o=>o.OrderItems).ThenInclude(oi=>oi.Product)
+                .Include(o=>o.OrderItems).ThenInclude(oi=>oi.ProductVariant)
+                .Include(o=>o.OrderCoupons!).ThenInclude(oc=>oc.Coupon)
+            );
+            if (orderWithDetails is null)
+            {
+                return ResponseDto<OrderDto>.Fail("Sipariş yüklenemedi!",StatusCodes.Status500InternalServerError);
+            }
+            var orderDto = _mapper.Map<OrderDto>(orderWithDetails);
+            return ResponseDto<OrderDto>.Success(orderDto,StatusCodes.Status201Created);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<OrderDto>.Fail($"Beklenmedik hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 }
