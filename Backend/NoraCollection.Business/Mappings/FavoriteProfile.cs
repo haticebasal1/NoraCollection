@@ -19,6 +19,5 @@ public class FavoriteProfile : Profile
                 opt => opt.MapFrom(src => TimeZoneInfo.ConvertTime(src.UpdatedAt.UtcDateTime, turkeyTimeZone)))
                 .ReverseMap();
         CreateMap<FavoriteCreateDto, Favorite>();
-        CreateMap<FavoriteUpdateDto, Favorite>();
     }
 }

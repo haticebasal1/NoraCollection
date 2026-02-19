@@ -202,3 +202,4 @@
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/SixLabors.Fonts.dll
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/SixLabors.ImageSharp.dll
 /Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/SixLabors.ImageSharp.Drawing.dll
+/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.API/bin/Debug/net8.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll

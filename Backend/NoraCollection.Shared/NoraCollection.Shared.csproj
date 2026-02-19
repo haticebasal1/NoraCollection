@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Configurations/" />
+    <Folder Include="Configurations/Auth/" />
     <Folder Include="Dtos/BlogCategoryDtos/" />
     <Folder Include="Dtos/BlogPostDtos/" />
     <Folder Include="Dtos/ColorDtos/" />

@@ -47,6 +47,20 @@ namespace NoraCollection.Data.Migrations
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("AspNetRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "1a401768-5c01-4c34-bf0d-547f0b8b4ab8",
+                            Name = "Admin",
+                            NormalizedName = "ADMIN"
+                        },
+                        new
+                        {
+                            Id = "49afd76c-933f-4579-8346-d6c5d8b1a799",
+                            Name = "User",
+                            NormalizedName = "USER"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -134,6 +148,18 @@ namespace NoraCollection.Data.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "af7be952-7e42-4025-ae5b-efa3b3a9a728",
+                            RoleId = "1a401768-5c01-4c34-bf0d-547f0b8b4ab8"
+                        },
+                        new
+                        {
+                            UserId = "2535fc28-1f63-4389-837d-7c5c16bcbdea",
+                            RoleId = "49afd76c-933f-4579-8346-d6c5d8b1a799"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -317,6 +343,9 @@ namespace NoraCollection.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("CouponId")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -346,11 +375,37 @@ namespace NoraCollection.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CouponId");
+
                     b.HasIndex("GiftOptionId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("Carts");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 737, DateTimeKind.Unspecified).AddTicks(8430), new TimeSpan(0, 0, 0, 0, 0)),
+                            DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsGiftPackage = false,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            UserId = "af7be952-7e42-4025-ae5b-efa3b3a9a728"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 737, DateTimeKind.Unspecified).AddTicks(8430), new TimeSpan(0, 0, 0, 0, 0)),
+                            DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            IsDeleted = false,
+                            IsGiftPackage = false,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            UserId = "2535fc28-1f63-4389-837d-7c5c16bcbdea"
+                        });
                 });
 
             modelBuilder.Entity("NoraCollection.Entities.Concrete.CartItem", b =>
@@ -448,7 +503,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(2470), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(4870), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Description = "Farklı taş ve modellerden oluşan yüzük koleksiyonu.",
                             ImageUrl = "yuzuk.png",
@@ -460,7 +515,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(2470), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(4870), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Description = "Zarif ve modern kolye modelleri.",
                             ImageUrl = "kolye.png",
@@ -472,7 +527,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(2470), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(4870), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Description = "Günlük ve özel tasarım bileklik çeşitleri.",
                             ImageUrl = "bileklik.png",
@@ -1008,7 +1063,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6140), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(9180), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/yuzuk-altin.png",
                             IsBestSeller = false,
@@ -1025,7 +1080,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6150), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(9190), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/kolye-gumus.png",
                             IsBestSeller = false,
@@ -1042,7 +1097,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6150), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(9190), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/bileklik-deri.png",
                             IsBestSeller = false,
@@ -1059,7 +1114,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6150), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(9190), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/kupe-altin.png",
                             IsBestSeller = false,
@@ -1076,7 +1131,7 @@ namespace NoraCollection.Data.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 29, 21, 52, 39, 412, DateTimeKind.Unspecified).AddTicks(6150), new TimeSpan(0, 0, 0, 0, 0)),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(9190), new TimeSpan(0, 0, 0, 0, 0)),
                             DeletedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             ImageUrl = "products/halhal-gumus.png",
                             IsBestSeller = false,
@@ -1491,6 +1546,52 @@ namespace NoraCollection.Data.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "af7be952-7e42-4025-ae5b-efa3b3a9a728",
+                            AccessFailedCount = 0,
+                            Address = "Kadıköy",
+                            City = "İstanbul",
+                            ConcurrencyStamp = "927b275f-86f1-4233-b6ed-66ff756558cf",
+                            Email = "testadmin@example.com",
+                            EmailConfirmed = true,
+                            FirstName = "Hatice",
+                            Gender = 2,
+                            LastName = "Başal",
+                            LockoutEnabled = false,
+                            NormalizedEmail = "TESTADMIN@EXAMPLE.COM",
+                            NormalizedUserName = "TESTADMIN",
+                            PasswordHash = "AQAAAAIAAYagAAAAEO0l3g3c+E1PTsF3DGa3MFZbO+UZlPnDKdlh0Fa1LGs4yxEUj+rTLRRUy4QO/ZC6gw==",
+                            PhoneNumberConfirmed = false,
+                            RegisterionDate = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 663, DateTimeKind.Unspecified).AddTicks(9290), new TimeSpan(0, 0, 0, 0, 0)),
+                            SecurityStamp = "af86fce6-a966-4fff-8a6a-801fff0dedd3",
+                            TwoFactorEnabled = false,
+                            UserName = "testadmin"
+                        },
+                        new
+                        {
+                            Id = "2535fc28-1f63-4389-837d-7c5c16bcbdea",
+                            AccessFailedCount = 0,
+                            Address = "Üsküdar",
+                            City = "İstanbul",
+                            ConcurrencyStamp = "01f6cab5-4a98-4517-b9d6-49823fae7691",
+                            Email = "testuser@example.com",
+                            EmailConfirmed = true,
+                            FirstName = "Esin",
+                            Gender = 1,
+                            LastName = "Çelik",
+                            LockoutEnabled = false,
+                            NormalizedEmail = "TESTUSER@EXAMPLE.COM",
+                            NormalizedUserName = "TESTUSER",
+                            PasswordHash = "AQAAAAIAAYagAAAAEMtw7zid17PaEsT2M8e1tmArCc7mOgEO6swI+LS0O9HGkZspDCKR3RHUOSI37A99MQ==",
+                            PhoneNumberConfirmed = false,
+                            RegisterionDate = new DateTimeOffset(new DateTime(2026, 2, 15, 15, 2, 9, 701, DateTimeKind.Unspecified).AddTicks(1860), new TimeSpan(0, 0, 0, 0, 0)),
+                            SecurityStamp = "7ec952b1-4532-45aa-9d45-af558c2cf191",
+                            TwoFactorEnabled = false,
+                            UserName = "testuser"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1563,6 +1664,10 @@ namespace NoraCollection.Data.Migrations
 
             modelBuilder.Entity("NoraCollection.Entities.Concrete.Cart", b =>
                 {
+                    b.HasOne("NoraCollection.Entities.Concrete.Coupon", "Coupon")
+                        .WithMany()
+                        .HasForeignKey("CouponId");
+
                     b.HasOne("NoraCollection.Entities.Concrete.GiftOption", "GiftOption")
                         .WithMany()
                         .HasForeignKey("GiftOptionId");
@@ -1570,6 +1675,8 @@ namespace NoraCollection.Data.Migrations
                     b.HasOne("NoraCollection.Entities.Concrete.User", "User")
                         .WithMany("Carts")
                         .HasForeignKey("UserId");
+
+                    b.Navigation("Coupon");
 
                     b.Navigation("GiftOption");
 
