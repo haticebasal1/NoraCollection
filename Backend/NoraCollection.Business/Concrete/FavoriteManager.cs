@@ -1,6 +1,7 @@
 using System;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using NoraCollection.Business.Abstract;
 using NoraCollection.Data.Abstract;
 using NoraCollection.Entities.Concrete;
@@ -79,14 +80,61 @@ public class FavoriteManager : IFavoriteService
         }
     }
 
-    public Task<ResponseDto<FavoriteDto>> GetByIdAsync(int id)
+    public async Task<ResponseDto<FavoriteDto>> GetByIdAsync(int id)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var favorite = await _favoriteRepository.GetAsync(
+                x => x.Id == id && !x.IsDeleted
+            );
+            if (favorite is null)
+            {
+                return ResponseDto<FavoriteDto>.Fail("Favori bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var result = _mapper.Map<FavoriteDto>(favorite);
+            return ResponseDto<FavoriteDto>.Success(result, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<FavoriteDto>.Fail($"Beklenmedik Hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<IEnumerable<FavoriteDto>>> GetByUserId(string userId)
+    public async Task<ResponseDto<IEnumerable<FavoriteDto>>> GetByUserId(string userId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return ResponseDto<IEnumerable<FavoriteDto>>.Fail("Kullanıcı bilgisi bulunamadı!", StatusCodes.Status401Unauthorized);
+            }
+            var favorites = await _favoriteRepository.GetAllAsync(
+                predicate: x => x.UserId == userId && !x.IsDeleted,
+                includeDeleted: false,
+                includes: q => q.Include(f => f.Product).ThenInclude(p => p!.ProductVariants)
+            );
+            if (!favorites.Any())
+            {
+                return ResponseDto<IEnumerable<FavoriteDto>>.Success(Array.Empty<FavoriteDto>(), StatusCodes.Status200OK);
+            }
+            var favoriteDtos = favorites.Select(f=> new FavoriteDto
+            {
+                Id = f.Id,
+                UserId = f.UserId,
+                ProductId = f.ProductId,
+                CreatedDate = f.CreatedAt.UtcDateTime,
+                UpdatedDate = f.UpdatedAt.UtcDateTime,
+                ProductName = f.Product != null ? f.Product.Name!:f.ProductName,
+                Price = f.Product != null ? (f.Product.DiscountedPrice ?? f.Product.Price) : f.Price,
+                ImageUrl = f.Product != null ? f.Product.ImageUrl! : f.ImageUrl,
+                IsInStock = f.Product != null && IsProductInStock(f.Product)
+            }).ToList();
+            return ResponseDto<IEnumerable<FavoriteDto>>.Success(favoriteDtos,StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<IEnumerable<FavoriteDto>>.Fail($"Beklenmedik Hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
     public Task<ResponseDto<bool>> IsInFavoritesAsync(string userId, int productId)
@@ -97,5 +145,15 @@ public class FavoriteManager : IFavoriteService
     public Task<ResponseDto<NoContentDto>> RemoveAsync(int id, string userId)
     {
         throw new NotImplementedException();
+    }
+    private static bool IsProductInStock(Product product)
+    {
+        // Varyant varsa: en az bir varyant stokta mı?
+        if (product.ProductVariants?.Any(v => !v.IsDeleted && v.IsAvailable && v.Stock > 0) == true)
+        {
+            return true;
+        }
+        // Varyant yoksa: Product.Stock > 0 mı?
+        return product.Stock > 0;
     }
 }

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NoraCollection.Business.Abstract;
+using NoraCollection.Data.Abstract;
 using NoraCollection.Entities.Concrete;
 using NoraCollection.Shared.Configurations.Auth;
 using NoraCollection.Shared.Dtos.AuthDtos;
@@ -19,11 +20,15 @@ public class AuthManager : IAuthService
 {
     private readonly UserManager<User> _userManager;
     private readonly JwtConfig _jwtConfig;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IGenericRepository<RefreshToken> _refreshToken;
 
-    public AuthManager(UserManager<User> userManager, IOptions<JwtConfig> options)
+    public AuthManager(UserManager<User> userManager, IOptions<JwtConfig> options, IUnitOfWork unitOfWork, IGenericRepository<RefreshToken> refreshToken)
     {
         _userManager = userManager;
         _jwtConfig = options.Value;
+        _unitOfWork = unitOfWork;
+        _refreshToken = _unitOfWork.GetRepository<RefreshToken>();
     }
 
     public async Task<ResponseDto<TokenDto>> LoginAsync(LoginDto loginDto)
@@ -35,13 +40,13 @@ public class AuthManager : IAuthService
                         ?? await _userManager.FindByEmailAsync(loginDto.UserNameOrEmail!);
             if (user is null)
             {
-                return ResponseDto<TokenDto>.Fail("Kullanıcı adı veya e-posta hatalı",StatusCodes.Status404NotFound);
+                return ResponseDto<TokenDto>.Fail("Kullanıcı adı veya e-posta hatalı", StatusCodes.Status404NotFound);
             }
             //Şifre doğrula
-            var isValidPassword = await _userManager.CheckPasswordAsync(user,loginDto.Password!);
+            var isValidPassword = await _userManager.CheckPasswordAsync(user, loginDto.Password!);
             if (!isValidPassword)
             {
-                return ResponseDto<TokenDto>.Fail("Kullanıcı şifre hatalı!",StatusCodes.Status400BadRequest);
+                return ResponseDto<TokenDto>.Fail("Kullanıcı şifre hatalı!", StatusCodes.Status400BadRequest);
             }
             //JWT Access Token + Refresh Token üret ve dön (RefreshToken DB'ye kaydedilmiyor)
             var tokenResponse = await GenerateTokenAsync(user);
@@ -61,13 +66,13 @@ public class AuthManager : IAuthService
             var existingByName = await _userManager.FindByNameAsync(registerDto.UserName!);
             if (existingByName is not null)
             {
-                return ResponseDto<UserDto>.Fail("Bu kullanıcı adı zaten kullanılıyor!",StatusCodes.Status400BadRequest);
+                return ResponseDto<UserDto>.Fail("Bu kullanıcı adı zaten kullanılıyor!", StatusCodes.Status400BadRequest);
             }
             // E-Posta daha önce alınmış mı?
             var existingByEmail = await _userManager.FindByEmailAsync(registerDto.Email!);
             if (existingByEmail is not null)
             {
-                return ResponseDto<UserDto>.Fail("Bu e-posta zaten kullanılıyor!",StatusCodes.Status400BadRequest);
+                return ResponseDto<UserDto>.Fail("Bu e-posta zaten kullanılıyor!", StatusCodes.Status400BadRequest);
             }
             //User entity constructor: (firstName, lastName, birthDate, address, city, gender, registerionDate)
             var user = new User(
@@ -80,20 +85,20 @@ public class AuthManager : IAuthService
                 DateTimeOffset.UtcNow
             )
             {
-              Email = registerDto.Email,
-              UserName = registerDto.UserName,
-              EmailConfirmed = true  
+                Email = registerDto.Email,
+                UserName = registerDto.UserName,
+                EmailConfirmed = true
             };
             // Kullanıcı oluştur (Identity parola hash'ler)
-            var result = await _userManager.CreateAsync(user,registerDto.Password!);
+            var result = await _userManager.CreateAsync(user, registerDto.Password!);
             if (!result.Succeeded)
             {
-                var errors = string.Join(";",result.Errors.Select(x=>x.Description));
-                return ResponseDto<UserDto>.Fail(errors,StatusCodes.Status400BadRequest);
+                var errors = string.Join(";", result.Errors.Select(x => x.Description));
+                return ResponseDto<UserDto>.Fail(errors, StatusCodes.Status400BadRequest);
             }
             //Varsayılan "User" rolü ver
-            await _userManager.AddToRoleAsync(user,"User");
-             //Manuel UserDto mapping (RegisterionDate -> RegistrationDate, EmailConfirmed bool->string)
+            await _userManager.AddToRoleAsync(user, "User");
+            //Manuel UserDto mapping (RegisterionDate -> RegistrationDate, EmailConfirmed bool->string)
             var userDto = new UserDto
             {
                 Id = user.Id,
@@ -108,11 +113,76 @@ public class AuthManager : IAuthService
                 RegistrationDate = user.RegisterionDate,
                 EmailConfirmed = user.EmailConfirmed.ToString()
             };
-            return ResponseDto<UserDto>.Success(userDto,StatusCodes.Status201Created);
+            return ResponseDto<UserDto>.Success(userDto, StatusCodes.Status201Created);
         }
         catch (Exception ex)
         {
             return ResponseDto<UserDto>.Fail($"Kayıt sırasında hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
+    }
+    public async Task<ResponseDto<TokenDto>> RefreshTokenAsync(string? refreshToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return ResponseDto<TokenDto>.Fail("Refresh token gerekli!", StatusCodes.Status400BadRequest);
+            }
+            // Token'ı DB'de ara: Token eşleşmeli, süresi dolmamış, iptal edilmemiş olmalı
+            var repo = _refreshToken;
+            var tokenEntity = await repo.GetAsync(
+                t => t.Token == refreshToken && t.ExpiresAt > DateTime.UtcNow && !t.IsRevoked
+            );
+            if (tokenEntity is null)
+            {
+                return ResponseDto<TokenDto>.Fail("Geçersiz veya süresi dolmuş refresh token! ", StatusCodes.Status401Unauthorized);
+            }
+            var user = await _userManager.FindByIdAsync(tokenEntity.UserId!);
+            if (user is null)
+            {
+                return ResponseDto<TokenDto>.Fail("Kullanıcı bulunamadı!", StatusCodes.Status404NotFound);
+            }
+            var tokenResponse = await GenerateTokenAsync(user);
+            if (!tokenResponse.IsSuccessful || tokenResponse.Data is null)
+            {
+                return tokenResponse;
+            }
+            // Eski token'ı iptal et (IsRevoked = true)
+            tokenEntity.IsRevoked = true;
+            repo.Update(tokenEntity);
+
+            await _unitOfWork.SaveAsync();
+            return tokenResponse;
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<TokenDto>.Fail($"Token yenilenirken hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    public async Task<ResponseDto<NoContentDto>> LogoutAsync(string? refreshToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return ResponseDto<NoContentDto>.Success(new NoContentDto(),StatusCodes.Status200OK);
+            }
+            var tokenEntity = await _refreshToken.GetAsync(
+                t => t.Token == refreshToken
+            );
+            if (tokenEntity is not null)
+            {
+                tokenEntity.IsRevoked = true;
+                _refreshToken.Update(tokenEntity);
+                await _unitOfWork.SaveAsync();
+            }
+            return ResponseDto<NoContentDto>.Success(new NoContentDto(), StatusCodes.Status200OK);
+
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Çıkış yapılırken hata:{ex.Message}", StatusCodes.Status500InternalServerError);
         }
     }
     // JWT Access Token + Refresh Token üretir. JwtConfig'ten süre (dakika) okunur.
@@ -150,6 +220,17 @@ public class AuthManager : IAuthService
                 RefreshToken = refreshToken,
                 RefreshTokenExpiretion = refreshTokenExpriy
             };
+
+            var refreshTokenEntity = new RefreshToken
+            {
+                Token = refreshToken,
+                UserId = user.Id,
+                ExpiresAt = refreshTokenExpriy,
+                IsRevoked = false
+            };
+            var repo = _refreshToken;
+            await repo.AddAsync(refreshTokenEntity);
+            await _unitOfWork.SaveAsync();
             return ResponseDto<TokenDto>.Success(tokenDto, StatusCodes.Status200OK);
         }
         catch (Exception ex)

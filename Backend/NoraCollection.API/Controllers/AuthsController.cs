@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NoraCollection.API.Controllers.BaseController;
@@ -26,6 +27,20 @@ namespace NoraCollection.API.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
             var response = await _authManager.RegisterAsync(registerDto);
+            return CreateResult(response);
+        }
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Refresh([FromBody] TokenDto? tokenDto)
+        {
+            var response = await _authManager.RefreshTokenAsync(tokenDto?.RefreshToken);
+            return CreateResult(response);
+        }
+        [HttpPost("logout")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Logout([FromBody] TokenDto? tokenDto)
+        {
+            var response = await _authManager.LogoutAsync(tokenDto?.RefreshToken);
             return CreateResult(response);
         }
     }

@@ -51,6 +51,8 @@ public class AppDbContext : IdentityDbContext<User>
     public DbSet<SiteSetting> SiteSettings { get; set; }
     public DbSet<GiftOption> GiftOptions { get; set; }
 
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(typeof(CategoryConfig).Assembly);

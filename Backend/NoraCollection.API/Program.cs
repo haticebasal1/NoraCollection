@@ -74,6 +74,7 @@ builder.Services.AddScoped<ICartService, CartManager>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderManager>();
 builder.Services.AddScoped<IAuthService, AuthManager>();
+builder.Services.AddScoped<IFavoriteService, FavoriteManager>();
 
 builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("JwtConfig"));
 builder.Services.Configure<EmailConfig>(builder.Configuration.GetSection("EmailConfig"));
