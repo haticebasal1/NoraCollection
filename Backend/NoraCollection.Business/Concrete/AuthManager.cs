@@ -22,13 +22,17 @@ public class AuthManager : IAuthService
     private readonly JwtConfig _jwtConfig;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGenericRepository<RefreshToken> _refreshToken;
+    private readonly IEmailService _emailManager;
+    private readonly IEmailTemplateService _emailTemplateServices;
 
-    public AuthManager(UserManager<User> userManager, IOptions<JwtConfig> options, IUnitOfWork unitOfWork, IGenericRepository<RefreshToken> refreshToken)
+    public AuthManager(UserManager<User> userManager, IOptions<JwtConfig> options, IUnitOfWork unitOfWork, IGenericRepository<RefreshToken> refreshToken, IEmailService emailManager, IEmailTemplateService emailTemplateServices)
     {
         _userManager = userManager;
         _jwtConfig = options.Value;
         _unitOfWork = unitOfWork;
         _refreshToken = _unitOfWork.GetRepository<RefreshToken>();
+        _emailManager = emailManager;
+        _emailTemplateServices = emailTemplateServices;
     }
 
     public async Task<ResponseDto<TokenDto>> LoginAsync(LoginDto loginDto)
@@ -98,6 +102,13 @@ public class AuthManager : IAuthService
             }
             //Varsayılan "User" rolü ver
             await _userManager.AddToRoleAsync(user, "User");
+
+            var subject = "Hoş Geldiniz - NoraCollection";
+            var body = _emailTemplateServices.GetTemplate("welcome", new Dictionary<string, string>
+            {
+                ["FirstName"] = user.FirstName ?? ""
+            });
+            _ = await _emailManager.SendEmailAsync(user.Email!, subject, body);
             //Manuel UserDto mapping (RegisterionDate -> RegistrationDate, EmailConfirmed bool->string)
             var userDto = new UserDto
             {
@@ -166,7 +177,7 @@ public class AuthManager : IAuthService
         {
             if (string.IsNullOrWhiteSpace(refreshToken))
             {
-                return ResponseDto<NoContentDto>.Success(new NoContentDto(),StatusCodes.Status200OK);
+                return ResponseDto<NoContentDto>.Success(new NoContentDto(), StatusCodes.Status200OK);
             }
             var tokenEntity = await _refreshToken.GetAsync(
                 t => t.Token == refreshToken
@@ -183,6 +194,77 @@ public class AuthManager : IAuthService
         catch (Exception ex)
         {
             return ResponseDto<NoContentDto>.Fail($"Çıkış yapılırken hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
+    }
+    public async Task<ResponseDto<NoContentDto>> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(forgotPasswordDto.Email))
+            {
+                return ResponseDto<NoContentDto>.Fail("E-posta zorunludur!", StatusCodes.Status400BadRequest);
+            }
+
+            var user = await _userManager.FindByEmailAsync(forgotPasswordDto.Email!);
+            if (user is null)
+            {
+                // Güvenlik: "Kayıtlı değil" dememek için yine Success dön
+                return ResponseDto<NoContentDto>.Success(new NoContentDto(),StatusCodes.Status200OK);
+            }
+            //Identity ile şifre sıfırlama token'ı üret (1 saat geçerli)
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            // URL'de kullanmak için özel karakterleri encode et
+            var encodedToken = Uri.EscapeDataString(token);
+            //Frontend'deki reset-password sayfasının linki (email + token query'de gidecek)
+            var resetLink = $"{_jwtConfig.FrontendBaseUrl.TrimEnd('/')}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={encodedToken}";
+            //reset-password.html template'inden içerik al, placeholders'ı doldur
+            var body = _emailTemplateServices.GetTemplate("reset-password", new Dictionary<string, string>
+            {
+                ["FirstName"] = user.FirstName ?? "",
+                ["ResetLink"] = resetLink
+            });
+            // E-postayı gönder (başarısız olsa bile kullanıcıya hata göstermiyoruz)
+            _ = await _emailManager.SendEmailAsync(user.Email!, "Şifre Sıfırlama - NoraCollection", body);
+            return ResponseDto<NoContentDto>.Success(new NoContentDto(),StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Şifre sıfırlama e-postası gönderilemedi!:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    public async Task<ResponseDto<NoContentDto>> ResetPasswordAsync(ResetPasswordDto resetPasswordDto)
+    {
+        try
+        {
+            
+            if (string.IsNullOrWhiteSpace(resetPasswordDto.Email) || string.IsNullOrWhiteSpace(resetPasswordDto.Token) || string.IsNullOrWhiteSpace(resetPasswordDto.NewPassword))
+            {
+                return ResponseDto<NoContentDto>.Fail("E-posta, token ve yeni şifre zorunludur!", StatusCodes.Status400BadRequest);
+            }
+            var user = await _userManager.FindByEmailAsync(resetPasswordDto.Email!);
+            if (user is null)
+            {
+                return ResponseDto<NoContentDto>.Fail("Geçersiz veya süresi dolmuş bağlantı.", StatusCodes.Status400BadRequest);
+            }
+            //Token URL'den geldiği için tekrar decode et (ForgotPassword'da EscapeDataString yaptık)
+            var token = Uri.UnescapeDataString(resetPasswordDto.Token!);
+
+            //Identity ile şifreyi sıfırla (token geçerli mi, süresi dolmuş mu kontrol eder)
+            var result = await _userManager.ResetPasswordAsync(user, token, resetPasswordDto.NewPassword!);
+
+            if (!result.Succeeded)
+            {
+                // Token geçersiz, süresi dolmuş veya şifre kurallarına uymuyor
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return ResponseDto<NoContentDto>.Fail($"Şifre sıfırlanamadı: {errors}", StatusCodes.Status400BadRequest);
+            }
+
+            return ResponseDto<NoContentDto>.Success(new NoContentDto(), StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Şifre sıfırlama sırasında hata: {ex.Message}", StatusCodes.Status500InternalServerError);
         }
     }
     // JWT Access Token + Refresh Token üretir. JwtConfig'ten süre (dakika) okunur.

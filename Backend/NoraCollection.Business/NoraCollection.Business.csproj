@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../NoraCollection.Data/NoraCollection.Data.csproj" />
     <ProjectReference Include="../NoraCollection.Entities/NoraCollection.Entities.csproj" />
+    <ProjectReference Include="../NoraCollection.Shared/NoraCollection.Shared.csproj" />
 
   </ItemGroup>
 

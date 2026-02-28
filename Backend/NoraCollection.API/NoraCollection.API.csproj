@@ -22,6 +22,9 @@
 
   <ItemGroup>
     <Folder Include="Controllers/BaseController/" />
+    <Folder Include="Services/" />
+    <Folder Include="wwwroot/" />
+    <Folder Include="wwwroot/email-templates/" />
   </ItemGroup>
 
 </Project>

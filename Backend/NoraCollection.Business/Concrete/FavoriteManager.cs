@@ -117,19 +117,19 @@ public class FavoriteManager : IFavoriteService
             {
                 return ResponseDto<IEnumerable<FavoriteDto>>.Success(Array.Empty<FavoriteDto>(), StatusCodes.Status200OK);
             }
-            var favoriteDtos = favorites.Select(f=> new FavoriteDto
+            var favoriteDtos = favorites.Select(f => new FavoriteDto
             {
                 Id = f.Id,
                 UserId = f.UserId,
                 ProductId = f.ProductId,
                 CreatedDate = f.CreatedAt.UtcDateTime,
                 UpdatedDate = f.UpdatedAt.UtcDateTime,
-                ProductName = f.Product != null ? f.Product.Name!:f.ProductName,
+                ProductName = f.Product != null ? f.Product.Name! : f.ProductName,
                 Price = f.Product != null ? (f.Product.DiscountedPrice ?? f.Product.Price) : f.Price,
                 ImageUrl = f.Product != null ? f.Product.ImageUrl! : f.ImageUrl,
                 IsInStock = f.Product != null && IsProductInStock(f.Product)
             }).ToList();
-            return ResponseDto<IEnumerable<FavoriteDto>>.Success(favoriteDtos,StatusCodes.Status200OK);
+            return ResponseDto<IEnumerable<FavoriteDto>>.Success(favoriteDtos, StatusCodes.Status200OK);
         }
         catch (Exception ex)
         {
@@ -137,14 +137,53 @@ public class FavoriteManager : IFavoriteService
         }
     }
 
-    public Task<ResponseDto<bool>> IsInFavoritesAsync(string userId, int productId)
+    public async Task<ResponseDto<bool>> IsInFavoritesAsync(string userId, int productId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return ResponseDto<bool>.Fail("Kullanıcı kimliği boş olamaz!", StatusCodes.Status400BadRequest);
+            }
+            var favorite = await _favoriteRepository.GetAsync(
+                x => x.UserId == userId && x.ProductId == productId && !x.IsDeleted
+            );
+            if (favorite is null)
+            {
+                return ResponseDto<bool>.Success(false, StatusCodes.Status200OK);
+            }
+            return ResponseDto<bool>.Success(true, StatusCodes.Status200OK);
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<bool>.Fail($"Beklenmedik Hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
 
-    public Task<ResponseDto<NoContentDto>> RemoveAsync(int id, string userId)
+    public async Task<ResponseDto<NoContentDto>> RemoveAsync(int id, string userId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return ResponseDto<NoContentDto>.Fail("Kullanıcı bilgisi bulunamadı!", StatusCodes.Status401Unauthorized);
+            }
+            var favorite = await _favoriteRepository.GetAsync(
+                x=>x.UserId == userId && x.Id == id && !x.IsDeleted
+            );
+            if (favorite is null)
+            {
+                return ResponseDto<NoContentDto>.Fail("Favori bulunamadı!",StatusCodes.Status404NotFound);
+            }
+            _favoriteRepository.Delete(favorite); 
+            await _unitOfWork.SaveAsync();
+            return ResponseDto<NoContentDto>.Success(StatusCodes.Status200OK);
+
+        }
+        catch (Exception ex)
+        {
+            return ResponseDto<NoContentDto>.Fail($"Beklenmedik Hata:{ex.Message}", StatusCodes.Status500InternalServerError);
+        }
     }
     private static bool IsProductInStock(Product product)
     {

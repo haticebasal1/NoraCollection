@@ -3112,6 +3112,7 @@
       "AutoMapper >= 14.0.0",
       "NoraCollection.Data >= 1.0.0",
       "NoraCollection.Entities >= 1.0.0",
+      "NoraCollection.Shared >= 1.0.0",
       "SixLabors.ImageSharp >= 3.1.12",
       "SixLabors.ImageSharp.Drawing >= 2.1.7"
     ]
@@ -3146,6 +3147,9 @@
             },
             "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Entities/NoraCollection.Entities.csproj": {
               "projectPath": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Entities/NoraCollection.Entities.csproj"
+            },
+            "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj": {
+              "projectPath": "/Users/hatice/Desktop/NoraCollection/NoraCollection/Backend/NoraCollection.Shared/NoraCollection.Shared.csproj"
             }
           }
         }

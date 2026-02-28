@@ -12,4 +12,5 @@ public class JwtConfig
     public double AccessTokenExpiration { get; set; }
     // Refresh token geçerlilik süresi (dakika). Örn: 43200 = 30 gün.
     public double RefreshTokenExpiration { get; set; }
+    public string FrontendBaseUrl { get; set; } = string.Empty;
 }

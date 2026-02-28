@@ -43,5 +43,20 @@ namespace NoraCollection.API.Controllers
             var response = await _authManager.LogoutAsync(tokenDto?.RefreshToken);
             return CreateResult(response);
         }
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+        {
+            var response = await _authManager.ForgotPasswordAsync(forgotPasswordDto);
+            return CreateResult(response);
+        }
+
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
+        {
+            var response = await _authManager.ResetPasswordAsync(resetPasswordDto);
+            return CreateResult(response);
+        }
     }
 }
