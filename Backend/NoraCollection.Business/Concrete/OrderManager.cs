@@ -29,6 +29,8 @@ public class OrderManager : IOrderService
     private readonly IGenericRepository<Shipping> _shippingRepository;
     private readonly IGenericRepository<User> _userRepository;
     private readonly IOrderRepository _order;
+    private readonly IEmailService _emailService;
+    private readonly IEmailTemplateService _emailTemplateService;
 
     /// Hangi sipariş durumundan hangi duruma geçilebileceği. Geçersiz geçişler (örn. Delivered → Pending) engellenir.
     private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
@@ -42,7 +44,7 @@ public class OrderManager : IOrderService
         [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(),
     };
 
-    public OrderManager(IUnitOfWork unitOfWork, IMapper mapper, IGenericRepository<Product> productRepository, ICartService cartManager, IGenericRepository<Order> orderRepository, IGenericRepository<OrderItem> orderItemRepository, IGenericRepository<OrderCoupon> orderCouponRepository, IGenericRepository<Coupon> couponRepository, IGenericRepository<ProductVariant> productVariantRepository, IGenericRepository<GiftOption> giftOptionRepository, IGenericRepository<Shipping> shippingRepository, IGenericRepository<User> userRepository, IOrderRepository order, IProductService productManager)
+    public OrderManager(IUnitOfWork unitOfWork, IMapper mapper, IGenericRepository<Product> productRepository, ICartService cartManager, IGenericRepository<Order> orderRepository, IGenericRepository<OrderItem> orderItemRepository, IGenericRepository<OrderCoupon> orderCouponRepository, IGenericRepository<Coupon> couponRepository, IGenericRepository<ProductVariant> productVariantRepository, IGenericRepository<GiftOption> giftOptionRepository, IGenericRepository<Shipping> shippingRepository, IGenericRepository<User> userRepository, IOrderRepository order, IProductService productManager, IEmailService emailService, IEmailTemplateService emailTemplateService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
@@ -58,6 +60,8 @@ public class OrderManager : IOrderService
         _userRepository = _unitOfWork.GetRepository<User>();
         _order = order;
         _productManager = productManager;
+        _emailService = emailService;
+        _emailTemplateService = emailTemplateService;
     }
 
     public async Task<ResponseDto<NoContentDto>> CancelOrderAsync(int id, string userId)
@@ -322,6 +326,8 @@ public class OrderManager : IOrderService
             {
                 return ResponseDto<OrderDto>.Fail("Sipariş yüklenemedi.", StatusCodes.Status500InternalServerError);
             }
+            // Sipariş onay e-postası: Müşteriye sipariş detaylarını gönder (e-posta başarısız olsa bile sipariş iptal edilmez)
+            _ = SendOrderConfirmationEmailAsync(orderWithDetails);
             var orderDto = _mapper.Map<OrderDto>(orderWithDetails);
             return ResponseDto<OrderDto>.Success(orderDto, StatusCodes.Status201Created);
         }
@@ -593,6 +599,8 @@ public class OrderManager : IOrderService
             {
                 return ResponseDto<OrderDto>.Fail("Sipariş yüklenemedi!",StatusCodes.Status500InternalServerError);
             }
+            // Sipariş onay e-postası: Müşteriye sipariş detaylarını gönder (e-posta başarısız olsa bile sipariş iptal edilmez)
+            _ = SendOrderConfirmationEmailAsync(orderWithDetails);
             var orderDto = _mapper.Map<OrderDto>(orderWithDetails);
             return ResponseDto<OrderDto>.Success(orderDto,StatusCodes.Status201Created);
         }
@@ -600,5 +608,22 @@ public class OrderManager : IOrderService
         {
             return ResponseDto<OrderDto>.Fail($"Beklenmedik hata:{ex.Message}", StatusCodes.Status500InternalServerError);
         }
+    }
+    // Sipariş onay e-postası gönderir. order-confirmation.html template kullanılır.
+    // E-posta gönderimi başarısız olsa bile sipariş etkilenmez (_ = ile sonuç yok sayılır).
+    private async Task SendOrderConfirmationEmailAsync(Order order)
+    {
+        if (string.IsNullOrWhiteSpace(order.Email))
+        {
+            return;
+        }
+        var body = _emailTemplateService.GetTemplate("order-confirmation", new Dictionary<string, string>
+        {
+            ["CustomerName"] = order.CustomerName ?? "",
+            ["OrderId"] = order.Id.ToString(),
+            ["OrderDate"] = order.OrderDate.ToString("dd.MM.yyyy HH:mm"),
+            ["FinalTotal"] = order.FinalTotal.ToString("N2")
+        });
+        _ = await _emailService.SendEmailAsync(order.Email, "Siparişiniz Alındı - NoraCollection", body);
     }
 }

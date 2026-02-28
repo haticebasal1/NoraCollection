@@ -35,7 +35,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options=>
+.AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -51,6 +51,16 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers();
+//Tarayıcı, varsayılan olarak frontend (örn. localhost:3000) ile backend (örn. localhost:5000) farklı port/domainde olduğunda isteği engeller. CORS ile backend, hangi origin’lere izin vereceğini belirtir.
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("https://localhost:3000", "https://localhost:5173", "http://localhost:3000", "http://localhost:5173")
+             .AllowAnyHeader()
+             .AllowAnyMethod();
+    });
+});
 builder.Services.AddAutoMapper(typeof(CategoryProfile).Assembly);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
@@ -91,6 +101,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
