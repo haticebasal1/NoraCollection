@@ -88,6 +88,7 @@ builder.Services.AddScoped<IAuthService, AuthManager>();
 builder.Services.AddScoped<IFavoriteService, FavoriteManager>();
 builder.Services.AddScoped<IEmailService, EmailManager>();
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateServices>();
+builder.Services.AddScoped<ICampaignBarService, CampaignBarManager>();
 
 builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("JwtConfig"));
 builder.Services.Configure<EmailConfig>(builder.Configuration.GetSection("EmailConfig"));
